@@ -7,3 +7,4 @@ level: easy
 points: 60
 ---
 This challenge was about LFI
+![Image]({{ site.baseurl }}/images/cool-cat.jpg)
