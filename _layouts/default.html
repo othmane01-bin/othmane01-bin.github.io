@@ -10,15 +10,91 @@
 
   <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
 
+ <style>
+  /* --- Global Reset & Sticky Footer --- */
+  body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; /* Modern, clean Font */
+    background-color: #1a1a1a;
+    color: #f0f0f0;
+  }
+  .container {
+    flex: 1;
+    width: 90%;
+    max-width: 900px; /* Slightly wider for modern cards */
+    margin: 0 auto;
+    padding: 20px 0;
+  }
+
+  /* --- Hacker Header Restored --- */
+  .site-header { padding: 40px 0 20px 0; border-bottom: 1px dashed #444; }
+  .site-title { font-size: 2.2em; margin: 0; font-family: monospace; font-weight: bold; }
+  .site-title a { color: #b5e853 !important; text-decoration: none; }
+  .site-tagline { color: #888; margin: 10px 0 20px 0; font-family: monospace; line-height: 1.5; }
+
+  /* Navigation buttons from the last update */
+  .nav-menu { display: flex; gap: 10px; margin-top: 15px; }
+  .nav-menu a {
+    color: #b5e853; text-decoration: none; font-size: 0.9em; font-family: monospace;
+    border: 1px solid #303030; padding: 4px 10px; border-radius: 3px;
+    transition: all 0.2s ease;
+  }
+  .nav-menu a:hover { background-color: #303030; color: #ffffff; }
+
+  /* --- THE NEW MODERN POST LIST CARDS (The "Medium" look) --- */
+  .medium-post-list { list-style: none; padding: 0; margin: 0; }
+  .medium-post-card {
+    background-color: #222;
+    border: 1px solid #333;
+    border-radius: 8px;
+    margin-bottom: 30px;
+    overflow: hidden; /* important for large images */
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .medium-post-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+    border-color: #444;
+  }
+  .post-card-link { text-decoration: none; color: inherit; display: block; }
+
+  /* New big image container */
+  .post-image-container { width: 100%; height: 200px; background-color: #111; position: relative; }
+  .medium-post-card img {
+    width: 100%; height: 100%; object-fit: cover; /* Important: covers the whole area */
+    display: block;
+  }
+  /* Fallback prompt style for cards without images */
+  .medium-post-card .fallback-prompt {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    font-size: 2em; color: #b5e853; font-family: monospace;
+  }
+
+  .post-content-container { padding: 20px 25px; }
+  .post-title { margin: 0 0 10px 0; font-size: 1.6em; color: #f0f0f0; }
+  .post-title a:hover { color: #b5e853; }
+  .post-excerpt { color: #adb5bd; margin: 0; font-size: 0.95em; line-height: 1.6; }
+
+  /* The green text style from the image for "All CTF Writeups" */
+  #main_content h2 { color: #b5e853; font-family: monospace; font-size: 1.8em; margin-bottom: 30px; }
+
+  /* --- Footer --- */
+  .site-footer {
+    padding: 30px 0; text-align: center; border-top: 1px solid #303030;
+    font-size: 0.85em; color: #666; font-family: monospace;
+  }
+</style>
+
   {% seo %}
 </head>
 
 <body>
 
 <header class="site-header">
-
   <div class="container">
-
     <h1 class="site-title">
       <a href="{{ '/' | relative_url }}">
         {{ site.title | default: site.github.repository_name }}
@@ -30,26 +106,24 @@
     </p>
 
     <nav class="nav-menu">
-      {% for page in site.pages %}
-        {% if page.title %}
-          <a href="{{ page.url | relative_url }}">{{ page.title }}</a>
+      {% for p in site.pages %}
+        {% if p.title and p.url != "/" %}
+          <a href="{{ p.url | relative_url }}">{{ p.title }}</a>
         {% endif %}
       {% endfor %}
     </nav>
-
   </div>
-
 </header>
 
-<div class="container">
-  <section id="main_content">
+<div class="container" id="main_content">
+  <section>
     {{ content }}
   </section>
 </div>
 
 <footer class="site-footer">
   <div class="container">
-    <p>© {{ site.time | date: "%Y" }} {{ site.title }}</p>
+    <p>© {{ site.time | date: "%Y" }} {{ site.title | default: "othmane01 blog" }}</p>
   </div>
 </footer>
 

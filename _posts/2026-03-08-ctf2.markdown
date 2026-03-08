@@ -3,10 +3,7 @@ layout: post
 title:  "ctf1"
 date:   2026-03-07 19:05:27 -0500
 categories: writeups
+level: easy
+points: 60
 ---
-CTF-Name : ctf1
-level : easy 
-points 60 
-
-## Recon 
-
+This challenge was about LFI

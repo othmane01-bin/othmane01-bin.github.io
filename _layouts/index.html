@@ -1,24 +1,94 @@
 ---
 layout: default
+title: Writeups
 ---
 
-{%- if site.posts.size > 0 -%}
-<ul class="site-post-list">
-  {%- assign date_format = site.minima.date_format | default: "%b %-d, %Y" -%}
+<h2 style="color: #b5e853; font-family: monospace; margin-bottom: 30px;">All CTF Writeups</h2>
 
-  {%- for post in site.posts -%}
-  <li>
-    <span class="post-meta">{{ post.date | date: date_format }}</span>
+<div class="ctf-container">
+  {% for post in site.posts %}
+    <div class="ctf-card">
+      <a href="{{ post.url | relative_url }}" style="text-decoration: none; color: inherit;">
+        
+        <div class="ctf-card-header">
+          {% if post.image %}
+            <img src="{{ post.image | relative_url }}" alt="icon">
+          {% else %}
+            <span class="fallback-icon">>></span>
+          {% endif %}
+          <span class="ctf-card-title">{{ post.title }}</span>
+        </div>
 
-    <h3>
-      <a class="post-link" href="{{ post.url | relative_url }}">
-        {{ post.title | escape }}
+        <div class="ctf-card-body">
+          <div class="ctf-metadata">
+            <span class="meta-label">{{ post.title }} level:</span> 
+            <span class="meta-value">{{ post.level | default: "unknown" }}</span>
+            <span class="meta-label">points:</span> 
+            <span class="meta-value">{{ post.points | default: "0" }}</span>
+          </div>
+          <p class="ctf-excerpt">{{ post.excerpt | strip_html | truncatewords: 15 }}</p>
+        </div>
+
       </a>
-    </h3>
+    </div>
+  {% endfor %}
+</div>
 
-    {{ post.excerpt }}
-  </li>
-  {%- endfor -%}
+<style>
+  .ctf-container { display: flex; flex-direction: column; gap: 20px; }
 
-</ul>
-{%- endif -%}
+  .ctf-card {
+    background: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 6px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .ctf-card:hover { border-color: #444; }
+
+  .ctf-card-header {
+    background: #181818;
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid #282828;
+  }
+
+  .ctf-card-header img {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    border-radius: 3px;
+    background: #252525;
+    padding: 2px;
+  }
+
+  .fallback-icon { color: #b5e853; font-weight: bold; font-family: monospace; }
+
+  .ctf-card-title {
+    color: #b5e853;
+    font-family: monospace;
+    font-size: 1.1em;
+    font-weight: bold;
+  }
+
+  .ctf-card-body { padding: 15px; }
+
+  .ctf-metadata {
+    font-family: monospace;
+    font-size: 0.9em;
+    margin-bottom: 8px;
+    color: #eee;
+  }
+
+  .meta-label { color: #888; margin-right: 5px; }
+  .meta-value { color: #fff; margin-right: 15px; }
+
+  .ctf-excerpt {
+    margin: 0;
+    color: #aaa;
+    font-size: 0.85em;
+    line-height: 1.4;
+  }
+</style>
