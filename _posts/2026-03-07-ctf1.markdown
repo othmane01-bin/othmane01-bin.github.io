@@ -9,7 +9,4 @@ level : easy
 points 60 
 
 ## Recon 
-open ports :
-80 
-22
-21 
+
