@@ -1,53 +1,24 @@
-<!DOCTYPE html>
-<html lang="{{ site.lang | default: 'en-US' }}">
+---
+layout: default
+---
 
-<head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+{%- if site.posts.size > 0 -%}
+<ul class="site-post-list">
+  {%- assign date_format = site.minima.date_format | default: "%b %-d, %Y" -%}
 
-  <title>{{ page.title }} | {{ site.title }}</title>
+  {%- for post in site.posts -%}
+  <li>
+    <span class="post-meta">{{ post.date | date: date_format }}</span>
 
-  <link rel="stylesheet" href="{{ '_site/assets/css/style.css' | relative_url }}">
-
-  {% seo %}
-</head>
-
-<body>
-
-<header class="site-header">
-
-  <div class="header-container">
-
-    <h1 class="site-title">
-      <a href="{{ '/' | relative_url }}">
-        {{ site.title | default: site.github.repository_name }}
+    <h3>
+      <a class="post-link" href="{{ post.url | relative_url }}">
+        {{ post.title | escape }}
       </a>
-    </h1>
+    </h3>
 
-    <p class="site-tagline">
-      {{ site.description | default: "CTF Writeups • Web Exploitation • Security Notes" }}
-    </p>
+    {{ post.excerpt }}
+  </li>
+  {%- endfor -%}
 
-    <nav class="nav-menu">
-      {% for page in site.pages %}
-        {% if page.title %}
-          <a href="{{ page.url | relative_url }}">{{ page.title }}</a>
-        {% endif %}
-      {% endfor %}
-    </nav>
-
-  </div>
-
-</header>
-
-<main class="main-container">
-  {{ content }}
-</main>
-
-<footer class="site-footer">
-  <p>© {{ site.time | date: "%Y" }} {{ site.title }}</p>
-</footer>
-
-</body>
-</html>
+</ul>
+{%- endif -%}
