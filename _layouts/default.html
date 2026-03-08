@@ -17,7 +17,7 @@
 
 <header class="site-header">
 
-  <div class="header-container">
+  <div class="container">
 
     <h1 class="site-title">
       <a href="{{ '/' | relative_url }}">
@@ -41,12 +41,16 @@
 
 </header>
 
-<main class="main-container">
-  {{ content }}
-</main>
+<div class="container">
+  <section id="main_content">
+    {{ content }}
+  </section>
+</div>
 
 <footer class="site-footer">
-  <p>© {{ site.time | date: "%Y" }} {{ site.title }}</p>
+  <div class="container">
+    <p>© {{ site.time | date: "%Y" }} {{ site.title }}</p>
+  </div>
 </footer>
 
 </body>
