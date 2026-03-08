@@ -1,0 +1,15 @@
+---
+layout: post
+title:  "Ctf1"
+date:   2026-03-07 19:05:27 -0100
+categories: writeups
+---
+CTF-Name : ctf1
+level : easy 
+points 60 
+
+## Recon 
+open ports :
+80 
+22
+21 
