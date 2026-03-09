@@ -294,6 +294,8 @@ cat root.txt
 THM{f963aaa6a430f210222158ae15c3d76d}
 
 ```
+**Special thanks to [elbe](https://tryhackme.com/p/elbee) and [Tryhackme](https://tryhackme.com)**
+
 **that's it . see you next time**	
 
 ![Image]({{ site.baseurl }}/images/cat.jpeg)
