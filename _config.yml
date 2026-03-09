@@ -1,7 +1,7 @@
 title: othmane01 blog
 email: its.othmne01@gmail.com
 description: >- # this means to ignore newlines until "baseurl:"
-  A personal collection of CTF (Capture The Flag) writeups, web security experiments, and cybersecurity insights. This site showcases detailed explanations, step-by-step approaches, and lessons learned from various challenges.
+  This is my personal collection of CTF (Capture The Flag) writeups, web security experiments, and cybersecurity insights. This site showcases detailed explanations, step-by-step approaches, and lessons learned from various challenges.
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "https://othmane01-bin.github.io" # the base hostname & protocol for your site, e.g. http://example.com
 
