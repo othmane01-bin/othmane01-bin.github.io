@@ -68,7 +68,7 @@ lets' try the cred we've found earlier.
 
 ![Image]({{ site.baseurl }}/images/Hidden-deep-into-my-heart/9.png)
 
-**Et Voila ** 
+**Et Voila** 
 
 # FLAG :
 
