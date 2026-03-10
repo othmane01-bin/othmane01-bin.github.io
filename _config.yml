@@ -1,8 +1,9 @@
 title: othmane01 blog
 email: its.othmne01@gmail.com
-description: >- # this means to ignore newlines until "baseurl:" A collection of CTF writeups, cybersecurity notes, and penetration testing walkthroughs documenting web exploitation techniques and lessons learned from real security challenges.
+description: >- # this means to ignore newlines until "baseurl:"
+  A collection of CTF writeups, cybersecurity notes, and penetration testing walkthroughs documenting web exploitation techniques and lessons learned from real security challenges.
 baseurl: "" # the subpath of your site, e.g. /blog
-url: "https://othmane01-bin.github.io" # the base hostname & protocol for your site, e.g. http://example.com
+url: "https://othmane01.com" # the base hostname & protocol for your site, e.g. http://example.com
 
 github_username:  othmane01-bin
 
