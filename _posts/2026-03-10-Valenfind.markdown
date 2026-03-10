@@ -18,8 +18,7 @@ In this walkthrough we will exploit a **Path Traversal vulnerability** in a Flas
 
 This guide explains the entire process step‑by‑step.
 
-**Room Link:**  
-https://tryhackme.com/room/lafb2026e10
+**Room Link:** [Valenfind](https://tryhackme.com/room/lafb2026e10)
 
 ---
 
