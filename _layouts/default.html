@@ -8,6 +8,24 @@
 
   <title>{{ page.title }} | {{ site.title }}</title>
 
+  <!-- SEO description -->
+  <meta name="description" content="{{ page.description | default: site.description }}">
+
+  <!-- Canonical URL -->
+  <link rel="canonical" href="{{ page.url | absolute_url }}">
+
+  <!-- Open Graph for social media -->
+  <meta property="og:title" content="{{ page.title }} | {{ site.title }}">
+  <meta property="og:description" content="{{ page.description | default: site.description }}">
+  <meta property="og:url" content="{{ page.url | absolute_url }}">
+  <meta property="og:type" content="website">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ page.title }} | {{ site.title }}">
+  <meta name="twitter:description" content="{{ page.description | default: site.description }}">
+
+  <!-- Main stylesheet -->
   <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
 
   <style>
@@ -60,7 +78,7 @@
       color: #666;
     }
   </style>
-
+</head>
   {% seo %}
 </head>
 
