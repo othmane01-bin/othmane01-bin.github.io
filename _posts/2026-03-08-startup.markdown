@@ -151,7 +151,7 @@ on <https://revshells.com> we can use the php PentestMonkey as our rev-shell , a
 
 ![Image]({{ site.baseurl }}/images/startup/8.png)
 
-we in !
+we're in !
 
 ![Image]({{ site.baseurl }}/images/startup/9.png)
 
