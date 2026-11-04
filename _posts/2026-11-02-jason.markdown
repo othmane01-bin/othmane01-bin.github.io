@@ -4,7 +4,7 @@ title:  "Jax sucks alot"
 date:   2026-11-02 21:05:27 -0500
 categories: writeups
 level: easy
-points: 90
+points: 60
 author: "othmane01"
 tags: "tryhackme writeup"
 ---
@@ -50,7 +50,7 @@ PORT   STATE SERVICE REASON         VERSION
 
 ![Image]({{ site.baseurl }}/images/jason/2.png)
 
-Interesting , lets try to look hidden directories/files:
+Interesting , lets try to look for hidden directories/files:
 
 **FFUF** 
 
