@@ -11,7 +11,7 @@ tags: "tryhackme writeup"
 
 ![Image]({{ site.baseurl }}/images/obscure/1.png)
 
-**obscure** is a tryhackme easy challenge in this step-by-step walk-through we'll solve it together.
+**obscure** is a tryhackme Medium challenge in this step-by-step walk-through we'll solve it together.
 
 **Room Link:** [obscure](https://tryhackme.com/room/obscured)
 
@@ -113,7 +113,6 @@ using the pasword we found earlier we can (download) backup the db :
 unzip the downloaded db > look for the domain we've found earlier to find the users : 
 
 **Syntax:** ```grep -n "antisoft.thm" dump.sql```
-
 ![Image]({{ site.baseurl }}/images/obscure/11.png)
 
 ![Image]({{ site.baseurl }}/images/obscure/12.png)
@@ -124,17 +123,17 @@ using the username ```admin@antisoft.thm``` and the password ```SecurePassword12
 
 **N.B** we can also create a new db , and log in with the user we've created : 
 
-[Image]({{ site.baseurl }}/images/obscure/14.png)
+![Image]({{ site.baseurl }}/images/obscure/14.png)
 
-[Image]({{ site.baseurl }}/images/obscure/15.png)
+![Image]({{ site.baseurl }}/images/obscure/15.png)
 
 when enumerate webapps , it's alwas a good i idea to check for the cms/technoligies version : 
 
-[Image]({{ site.baseurl }}/images/obscure/16.png)
+![Image]({{ site.baseurl }}/images/obscure/16.png)
 
 this version has been vulnerable to rce since ages :
 
-[Image]({{ site.baseurl }}/images/obscure/17.png)
+![Image]({{ site.baseurl }}/images/obscure/17.png)
 
 **The exlpoit:**
 
@@ -154,22 +153,22 @@ with open("exploit.pickle", "wb") as f:
 ```
 search and install the module : Database Anonymization , and then we'll upoload the exploit.pickle . 
 
-[Image]({{ site.baseurl }}/images/obscure/18.png)
+![Image]({{ site.baseurl }}/images/obscure/18.png)
 
 Once we have the module installed, we navigate to the settings page and select “Anonymize database” 
 
-[Image]({{ site.baseurl }}/images/obscure/19.png)
+![Image]({{ site.baseurl }}/images/obscure/19.png)
 
 We upload the “exploit.pickle” file generated our script and click on “Reverse the Database Anonymization” button.:
 
 **N.b:**  to generate the pickle file we have to use python2.7 
 **Syntax:** : `python2.7 exploit.py`
 
-[Image]({{ site.baseurl }}/images/obscure/20.png)
+![Image]({{ site.baseurl }}/images/obscure/20.png)
 
 ## initial Access:
 
-[Image]({{ site.baseurl }}/images/obscure/21.png)
+![Image]({{ site.baseurl }}/images/obscure/21.png)
 
 ## FLAG 1 :
 
