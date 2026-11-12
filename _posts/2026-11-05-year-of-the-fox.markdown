@@ -1,7 +1,6 @@
 ---
 layout: post
 title:  "year-of-the-fox"
-alias: "yotf"
 date:   2026-11-05 21:05:27 -0500
 categories: writeups
 level: Hard
