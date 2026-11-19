@@ -84,7 +84,7 @@ Host script results:
 ````
 
 what we get until now : 
-- we might need a password in the web app in the port 80 since the hint says : **| HTTP/1.1 401 Unauthorized\x0D, Basic realm=You want in? Gotta guess the password!** .
+- we might need a password in the web app in the port 80 since the hint says :HTTP/1.1 401 Unauthorized.
 - the os is ubuntu .
 - the name of the box is : **year-of-the-fox**.
 - the domain name is : **year-of-the-fox.lan**.
