@@ -3,6 +3,7 @@ layout: post
 title:  "Hidden Deep Into my Heart"
 date:   2026-03-09 16:05:27 -0500
 categories: writeups
+platform: thm
 level: easy
 points: 100
 author: "othmane01"

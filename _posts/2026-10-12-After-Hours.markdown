@@ -3,6 +3,7 @@ layout: post
 title:  "After Hours"
 date:   2026-10-10 21:05:27 -0500
 categories: writeups
+platform: thm
 level: medium
 points: 90
 author: "othmane01"

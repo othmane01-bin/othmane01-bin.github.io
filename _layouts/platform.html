@@ -1,0 +1,171 @@
+---
+layout: default
+---
+
+<h2 class="writeups-heading">
+  {{ page.title }}
+</h2>
+
+<p>{{ page.description }}</p>
+
+<div class="ctf-container">
+
+  {% assign entries = site.posts
+    | where: "platform", page.platform
+    | sort: "date"
+    | reverse
+  %}
+
+  {% for post in entries %}
+
+    <div class="ctf-card">
+
+      <a href="{{ post.url | relative_url }}"
+         style="text-decoration: none; color: inherit;">
+
+        <div class="ctf-card-header">
+
+          {% if post.image %}
+            <img src="{{ post.image | relative_url }}" alt="icon">
+          {% else %}
+            <span class="fallback-icon">&gt;&gt;</span>
+          {% endif %}
+
+          <span class="ctf-card-title">
+            {{ post.title }}
+          </span>
+
+        </div>
+
+        <div class="ctf-card-body">
+
+          <div class="ctf-metadata">
+
+            <span class="meta-label">Platform:</span>
+            <span class="meta-value">
+              {{ post.platform | upcase | default: "OTHER" }}
+            </span>
+
+            <span class="meta-label">Level:</span>
+            <span class="meta-value">
+              {{ post.level | default: "Unknown" }}
+            </span>
+
+            <span class="meta-label">Points:</span>
+            <span class="meta-value">
+              {{ post.points | default: "0" }}
+            </span>
+
+          </div>
+
+          <p class="ctf-excerpt">
+            {{ post.excerpt | strip_html | truncatewords: 20 }}
+          </p>
+
+          <span class="meta-label">
+            {{ post.date | date: "%B %d, %Y" }}
+          </span>
+
+        </div>
+
+      </a>
+
+    </div>
+
+  {% endfor %}
+
+  {% unless entries.size > 0 %}
+    <p>No {{ page.title }} published yet.</p>
+  {% endunless %}
+
+</div>
+
+<style>
+/* ==================================
+   PLATFORM PAGE
+   REUSES HOMEPAGE WRITEUP DESIGN
+================================== */
+
+.writeups-heading {
+  color: #b5e853;
+  font-family: monospace;
+  margin-bottom: 30px;
+}
+
+.ctf-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ctf-card {
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 6px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.ctf-card:hover {
+  border-color: #b5e853;
+}
+
+.ctf-card-header {
+  background: #181818;
+  padding: 10px 15px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid #282828;
+}
+
+.ctf-card-header img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  border-radius: 3px;
+  background: #252525;
+  padding: 2px;
+}
+
+.fallback-icon {
+  color: #b5e853;
+  font-weight: bold;
+  font-family: monospace;
+}
+
+.ctf-card-title {
+  color: #b5e853;
+  font-family: monospace;
+  font-size: 1.1em;
+  font-weight: bold;
+}
+
+.ctf-card-body {
+  padding: 15px;
+}
+
+.ctf-metadata {
+  font-family: monospace;
+  font-size: 0.9em;
+  margin-bottom: 8px;
+  color: #eee;
+}
+
+.meta-label {
+  color: #888;
+  margin-right: 5px;
+}
+
+.meta-value {
+  color: #fff;
+  margin-right: 15px;
+}
+
+.ctf-excerpt {
+  margin: 0 0 10px 0;
+  color: #aaa;
+  font-size: 0.85em;
+  line-height: 1.4;
+}
+</style>

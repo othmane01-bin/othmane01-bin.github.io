@@ -3,6 +3,7 @@ layout: post
 title:  "Love Letter Locker"
 date:   2026-03-10 01:05:27 -0500
 categories: writeups
+platform: thm
 level: easy
 points: 100
 author: "othmane01"

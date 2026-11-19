@@ -3,6 +3,7 @@ layout: post
 title:  "year-of-the-fox"
 date:   2026-11-05 21:05:27 -0500
 categories: writeups
+platform: thm
 level: Hard
 points: 90
 author: "othmane01"

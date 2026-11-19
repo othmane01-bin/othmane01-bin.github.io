@@ -3,6 +3,7 @@ layout: post
 title:  "Jax sucks alot"
 date:   2026-11-02 21:05:27 -0500
 categories: writeups
+platform: thm
 level: easy
 points: 60
 author: "othmane01"

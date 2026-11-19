@@ -1,94 +1,787 @@
 ---
 layout: default
-title: Writeups
+title: Home
 ---
 
-<h2 style="color: #b5e853; font-family: monospace; margin-bottom: 30px;">All CTF Writeups</h2>
+<!-- ==================================
+     SYSTEM ACCESS HERO
+================================== -->
 
-<div class="ctf-container">
-  {% for post in site.posts %}
-    <div class="ctf-card">
-      <a href="{{ post.url | relative_url }}" style="text-decoration: none; color: inherit;">
-        
-        <div class="ctf-card-header">
-          {% if post.image %}
-            <img src="{{ post.image | relative_url }}" alt="icon">
-          {% else %}
-            <span class="fallback-icon">>></span>
-          {% endif %}
-          <span class="ctf-card-title">{{ post.title }}</span>
-        </div>
+<section class="system-access">
 
-        <div class="ctf-card-body">
-          <div class="ctf-metadata">
-            <span class="meta-label">{{ post.title }} level:</span> 
-            <span class="meta-value">{{ post.level | default: "unknown" }}</span>
-            <span class="meta-label">points:</span> 
-            <span class="meta-value">{{ post.points | default: "0" }}</span>
-          </div>
-          <p class="ctf-excerpt">{{ post.excerpt | strip_html | truncatewords: 15 }}</p>
-        </div>
+  <div class="system-topbar boot-item">
+    <span>OTHMANE01 // SECURITY LAB</span>
+    <span class="system-status">
+      <span class="status-dot"></span> ONLINE
+    </span>
+  </div>
 
+  <div class="system-intro">
+
+    <p class="terminal-label boot-item">
+      INITIALIZING PROFILE...
+    </p>
+
+    <h2 class="boot-item">Hello, I'm Othmane.</h2>
+
+    <h3 class="boot-item">
+      Web Security Researcher &amp; Penetration Tester
+    </h3>
+
+    <p class="intro-description boot-item">
+      Exploring vulnerabilities, breaking things in controlled environments,
+      and documenting what I learn through practical security research and CTF challenges.
+    </p>
+
+    <div class="hero-actions boot-item">
+      <a href="#latest-writeups" class="hero-button primary-button">
+        Explore Writeups &rarr;
+      </a>
+
+      <a href="{{ '/about/' | relative_url }}" class="hero-button secondary-button">
+        About Me
       </a>
     </div>
-  {% endfor %}
-</div>
+
+  </div>
+
+  <div class="system-divider boot-item"></div>
+
+  <div class="stats-heading boot-item">
+    <span>PLAYER STATISTICS</span>
+    <span>PROFILE OVERVIEW // 2026</span>
+  </div>
+
+  <div class="stats-grid">
+
+    <!-- HACK THE BOX -->
+    <div class="stats-card boot-item">
+
+      <div class="stats-platform">
+        <span class="platform-indicator htb-indicator"></span>
+        HACK THE BOX
+      </div>
+
+      <div class="stats-main">
+        <span class="stats-number">42</span>
+        <span class="stats-unit">LEVEL</span>
+      </div>
+
+      <div class="stats-detail">
+        <span>Rank</span>
+        <strong>Skilled</strong>
+      </div>
+
+      <div class="stats-detail">
+        <span>Machines Pwned</span>
+        <strong>26</strong>
+      </div>
+
+    </div>
+
+    <!-- TRYHACKME -->
+    <div class="stats-card boot-item">
+
+      <div class="stats-platform">
+        <span class="platform-indicator thm-indicator"></span>
+        TRYHACKME
+      </div>
+
+      <div class="stats-main">
+        <span class="stats-number">6,390</span>
+        <span class="stats-unit">GLOBAL RANK</span>
+      </div>
+
+      <div class="stats-detail">
+        <span>Rooms Completed</span>
+        <strong>324</strong>
+      </div>
+
+      <div class="stats-detail">
+        <span>Badges Earned</span>
+        <strong>32</strong>
+      </div>
+
+    </div>
+
+    <!-- HACKERONE -->
+    <div class="stats-card boot-item">
+
+      <div class="stats-platform">
+        <span class="platform-indicator h1-indicator"></span>
+        HACKERONE
+      </div>
+
+      <div class="stats-main">
+        <span class="stats-number">01</span>
+        <span class="stats-unit">HIGH SEVERITY</span>
+      </div>
+
+      <div class="stats-detail">
+        <span>Report Status</span>
+        <strong class="triaged-status">Triaged</strong>
+      </div>
+
+      <div class="stats-detail">
+        <span>CVSS</span>
+        <strong>8.7</strong>
+      </div>
+
+      <div class="h1-note">
+        TRIAGED // OPEN
+      </div>
+
+    </div>
+
+  </div>
+
+  <div class="system-footer boot-item">
+    <span>STATUS: ACTIVE LEARNING</span>
+    <span>root@othmane01:~$ <span class="terminal-cursor">_</span></span>
+  </div>
+
+</section>
+
+
+<!-- ==================================
+     LATEST WRITEUPS
+     VISIBLE IMMEDIATELY
+================================== -->
+
+<section id="latest-writeups">
+
+  <h2 class="writeups-heading">
+    Latest Writeups &amp; Notes
+  </h2>
+
+  <div class="ctf-container">
+
+    {% for post in paginator.posts %}
+
+      <div class="ctf-card">
+
+        <a href="{{ post.url | relative_url }}"
+           style="text-decoration: none; color: inherit;">
+
+          <div class="ctf-card-header">
+
+            {% if post.image %}
+              <img src="{{ post.image | relative_url }}" alt="icon">
+            {% else %}
+              <span class="fallback-icon">&gt;&gt;</span>
+            {% endif %}
+
+            <span class="ctf-card-title">
+              {{ post.title }}
+            </span>
+
+          </div>
+
+          <div class="ctf-card-body">
+
+            <div class="ctf-metadata">
+
+              <span class="meta-label">Platform:</span>
+              <span class="meta-value">
+                {{ post.categories | last | upcase | default: "OTHER" }}
+              </span>
+
+              <span class="meta-label">Level:</span>
+              <span class="meta-value">
+                {{ post.level | default: "Unknown" }}
+              </span>
+
+              <span class="meta-label">Points:</span>
+              <span class="meta-value">
+                {{ post.points | default: "0" }}
+              </span>
+
+            </div>
+
+            <p class="ctf-excerpt">
+              {{ post.excerpt | strip_html | truncatewords: 20 }}
+            </p>
+
+            <span class="meta-label">
+              {{ post.date | date: "%B %d, %Y" }}
+            </span>
+
+          </div>
+
+        </a>
+
+      </div>
+
+    {% endfor %}
+
+  </div>
+
+  {% if paginator.total_posts == 0 %}
+    <p>No writeups published yet.</p>
+  {% endif %}
+
+
+  <!-- PAGINATION -->
+
+  {% if paginator.total_pages > 1 %}
+
+    <nav class="pagination">
+
+      {% if paginator.previous_page %}
+        <a href="{{ paginator.previous_page_path | relative_url }}">
+          « Previous
+        </a>
+      {% endif %}
+
+      {% for page_number in (1..paginator.total_pages) %}
+
+        {% if page_number == paginator.page %}
+
+          <span class="current-page">
+            {{ page_number }}
+          </span>
+
+        {% elsif page_number == 1 %}
+
+          <a href="{{ '/' | relative_url }}">
+            {{ page_number }}
+          </a>
+
+        {% else %}
+
+          <a href="{{ site.paginate_path | replace: ':num', page_number | relative_url }}">
+            {{ page_number }}
+          </a>
+
+        {% endif %}
+
+      {% endfor %}
+
+      {% if paginator.next_page %}
+        <a href="{{ paginator.next_page_path | relative_url }}">
+          Next »
+        </a>
+      {% endif %}
+
+    </nav>
+
+  {% endif %}
+
+</section>
+
 
 <style>
-  .ctf-container { display: flex; flex-direction: column; gap: 20px; }
 
-  .ctf-card {
-    background: #1e1e1e;
-    border: 1px solid #333;
-    border-radius: 6px;
-    overflow: hidden;
-    transition: border-color 0.2s;
-  }
-  .ctf-card:hover { border-color: #444; }
+/* ==================================
+   SYSTEM ACCESS HERO
+================================== */
 
-  .ctf-card-header {
-    background: #181818;
-    padding: 10px 15px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    border-bottom: 1px solid #282828;
-  }
+.system-access {
+  background: #090d0b;
+  border: 1px solid #344b36;
+  border-radius: 8px;
+  padding: 25px;
+  margin: 10px 0 45px;
+  color: #eee;
+  font-family: monospace;
+  animation: terminal-glow 2s ease-in-out infinite alternate;
+}
 
-  .ctf-card-header img {
-    width: 24px;
-    height: 24px;
-    object-fit: contain;
-    border-radius: 3px;
-    background: #252525;
-    padding: 2px;
+@keyframes terminal-glow {
+  from {
+    border-color: #263b29;
   }
 
-  .fallback-icon { color: #b5e853; font-weight: bold; font-family: monospace; }
+  to {
+    border-color: #547a42;
+  }
+}
 
-  .ctf-card-title {
-    color: #b5e853;
-    font-family: monospace;
-    font-size: 1.1em;
-    font-weight: bold;
+
+/* TOP BAR */
+
+.system-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  color: #b5e853;
+  font-size: 0.85em;
+  font-weight: bold;
+}
+
+.system-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.8em;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  background: #b5e853;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #b5e853;
+}
+
+
+/* INTRODUCTION */
+
+.system-intro {
+  padding: 35px 0 25px;
+}
+
+.terminal-label {
+  color: #b5e853;
+  font-size: 0.8em;
+  letter-spacing: 1px;
+}
+
+.system-intro h2 {
+  color: #b5e853;
+  font-size: 2.1em;
+  margin: 12px 0;
+}
+
+.system-intro h3 {
+  color: #fff;
+  font-size: 1.2em;
+  margin-bottom: 15px;
+}
+
+.intro-description {
+  color: #a1aaa3;
+  max-width: 650px;
+  line-height: 1.7;
+  font-size: 0.95em;
+}
+
+
+/* BUTTONS */
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.hero-button {
+  display: inline-block;
+  padding: 10px 16px;
+  border-radius: 4px;
+  text-decoration: none !important;
+  font-size: 0.85em;
+  font-weight: bold;
+  transition: 0.2s ease;
+}
+
+.primary-button {
+  color: #090d0b !important;
+  background: #b5e853;
+  border: 1px solid #b5e853;
+}
+
+.primary-button:hover {
+  background: #d0ff78;
+}
+
+.secondary-button {
+  color: #b5e853 !important;
+  border: 1px solid #465346;
+  background: #141c16;
+}
+
+.secondary-button:hover {
+  border-color: #b5e853;
+  background: #1e2a20;
+}
+
+
+/* DIVIDER */
+
+.system-divider {
+  height: 1px;
+  background: #30402e;
+  margin: 10px 0 22px;
+}
+
+
+/* STATISTICS */
+
+.stats-heading {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #b5e853;
+  font-size: 0.78em;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
+.stats-heading span:last-child {
+  color: #68796b;
+  font-weight: normal;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.stats-card {
+  background: #141c16;
+  border: 1px solid #344b36;
+  border-radius: 6px;
+  padding: 16px;
+  min-width: 0;
+}
+
+.stats-platform {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #b5e853;
+  font-size: 0.8em;
+  font-weight: bold;
+  margin-bottom: 18px;
+}
+
+.platform-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.htb-indicator {
+  background: #9fef00;
+}
+
+.thm-indicator {
+  background: #e83c3c;
+}
+
+.h1-indicator {
+  background: #ff8b45;
+}
+
+.stats-main {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 15px;
+}
+
+.stats-number {
+  color: #b5e853;
+  font-size: 2em;
+  font-weight: bold;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.stats-unit {
+  color: #89978b;
+  font-size: 0.7em;
+  margin-top: 4px;
+}
+
+.stats-detail {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid #29372b;
+  padding-top: 9px;
+  margin-top: 9px;
+  font-size: 0.78em;
+}
+
+.stats-detail span {
+  color: #89978b;
+}
+
+.stats-detail strong {
+  color: #eee;
+  text-align: right;
+}
+
+.triaged-status {
+  color: #b5e853 !important;
+}
+
+.h1-note {
+  color: #ffb36e;
+  font-size: 0.7em;
+  margin-top: 13px;
+  letter-spacing: 1px;
+}
+
+
+/* FOOTER */
+
+.system-footer {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  color: #718173;
+  font-size: 0.72em;
+  margin-top: 22px;
+  padding-top: 15px;
+  border-top: 1px solid #30402e;
+}
+
+.terminal-cursor {
+  color: #b5e853;
+  animation: cursor-blink 1s steps(2, start) infinite;
+}
+
+@keyframes cursor-blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+
+/* ==================================
+   PROGRESSIVE BOOT ANIMATION
+================================== */
+
+.boot-item {
+  opacity: 0;
+  transform: translateY(9px);
+  transition:
+    opacity 0.5s ease,
+    transform 0.5s ease;
+}
+
+.boot-item.loaded {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+
+/* ==================================
+   LATEST WRITEUPS
+================================== */
+
+#latest-writeups {
+  opacity: 1;
+  visibility: visible;
+}
+
+.writeups-heading {
+  color: #b5e853;
+  font-family: monospace;
+  margin-bottom: 30px;
+}
+
+.ctf-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ctf-card {
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 6px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.ctf-card:hover {
+  border-color: #b5e853;
+}
+
+.ctf-card-header {
+  background: #181818;
+  padding: 10px 15px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid #282828;
+}
+
+.ctf-card-header img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  border-radius: 3px;
+  background: #252525;
+  padding: 2px;
+}
+
+.fallback-icon {
+  color: #b5e853;
+  font-weight: bold;
+  font-family: monospace;
+}
+
+.ctf-card-title {
+  color: #b5e853;
+  font-family: monospace;
+  font-size: 1.1em;
+  font-weight: bold;
+}
+
+.ctf-card-body {
+  padding: 15px;
+}
+
+.ctf-metadata {
+  font-family: monospace;
+  font-size: 0.9em;
+  margin-bottom: 8px;
+  color: #eee;
+}
+
+.meta-label {
+  color: #888;
+  margin-right: 5px;
+}
+
+.meta-value {
+  color: #fff;
+  margin-right: 15px;
+}
+
+.ctf-excerpt {
+  margin: 0 0 10px 0;
+  color: #aaa;
+  font-size: 0.85em;
+  line-height: 1.4;
+}
+
+
+/* ==================================
+   PAGINATION
+================================== */
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 35px 0;
+  font-family: monospace;
+}
+
+.pagination a,
+.pagination span {
+  padding: 8px 13px;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #b5e853;
+  text-decoration: none;
+}
+
+.pagination a:hover,
+.pagination .current-page {
+  background: #b5e853;
+  color: #151515;
+  border-color: #b5e853;
+}
+
+
+/* ==================================
+   RESPONSIVE DESIGN
+================================== */
+
+@media (max-width: 650px) {
+
+  .system-access {
+    padding: 17px;
   }
 
-  .ctf-card-body { padding: 15px; }
-
-  .ctf-metadata {
-    font-family: monospace;
-    font-size: 0.9em;
-    margin-bottom: 8px;
-    color: #eee;
+  .system-intro {
+    padding: 25px 0 20px;
   }
 
-  .meta-label { color: #888; margin-right: 5px; }
-  .meta-value { color: #fff; margin-right: 15px; }
-
-  .ctf-excerpt {
-    margin: 0;
-    color: #aaa;
-    font-size: 0.85em;
-    line-height: 1.4;
+  .system-intro h2 {
+    font-size: 1.7em;
   }
+
+  .system-intro h3 {
+    font-size: 1em;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-card {
+    padding: 15px;
+  }
+
+  .system-footer {
+    font-size: 0.65em;
+  }
+
+}
+
+
+/* ==================================
+   ACCESSIBILITY
+================================== */
+
+@media (prefers-reduced-motion: reduce) {
+
+  .boot-item {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .system-access {
+    animation: none;
+  }
+
+  .terminal-cursor {
+    animation: none;
+  }
+
+}
+
 </style>
+
+
+<!-- ==================================
+     BOOT SEQUENCE SCRIPT
+================================== -->
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+  const items = document.querySelectorAll(
+    ".system-access .boot-item"
+  );
+
+  if (!items.length) return;
+
+  const reducedMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)"
+  ).matches;
+
+  if (reducedMotion) {
+    items.forEach(function (item) {
+      item.classList.add("loaded");
+    });
+
+    return;
+  }
+
+  items.forEach(function (item, index) {
+
+    setTimeout(function () {
+      item.classList.add("loaded");
+    }, 350 * (index + 1));
+
+  });
+
+});
+</script>
