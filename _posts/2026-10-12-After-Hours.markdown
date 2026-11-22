@@ -2,7 +2,9 @@
 layout: post
 title:  "After Hours"
 date:   2026-10-10 21:05:27 -0500
-categories: writeups
+categories:
+  - writeups
+  - thm
 platform: thm
 level: medium
 points: 90

@@ -1,8 +1,10 @@
 ---
-layout: post
+layout: playform
 title:  "startup"
 date:   2026-03-07 21:05:27 -0500
-categories: writeups
+categories:
+  - writeups
+  - thm
 platform: thm
 level: easy
 points: 90

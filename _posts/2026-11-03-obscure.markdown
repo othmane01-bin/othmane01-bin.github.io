@@ -2,7 +2,9 @@
 layout: post
 title:  "Obscure"
 date:   2026-11-03 21:05:27 -0500
-categories: writeups
+categories:
+  - writeups
+  - thm
 platform: thm
 level: Medium
 points: 90

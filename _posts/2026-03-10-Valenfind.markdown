@@ -2,7 +2,9 @@
 layout: post
 title:  "Valenfind"
 date:   2026-03-10 01:05:27 -0500
-categories: writeups
+categories:
+  - writeups
+  - thm
 platform: thm
 level: Medium
 points: 200
