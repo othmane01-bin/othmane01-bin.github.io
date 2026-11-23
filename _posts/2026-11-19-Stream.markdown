@@ -905,8 +905,7 @@ Execute the copied Bash binary with the `-p` option will gives us our root shell
 ```
 ![Image]({{ site.baseurl }}/images/stream/28.png)
 
-that's it guys , i hope you learn something along the way .
-
+That's it, guys! I hope you learned something along the way. Thanks for reading!
 ![Image]({{ site.baseurl }}/images/cat.jpeg)
 
 

@@ -58,9 +58,11 @@ layout: default
 
           </div>
 
-          <p class="ctf-excerpt">
-            {{ post.excerpt | strip_html | truncatewords: 20 }}
-          </p>
+          {% unless post.platform == "notes" %}
+            <p class="ctf-excerpt">
+              {{ post.excerpt | strip_html | truncatewords: 20 }}
+            </p>
+          {% endunless %}
 
           <span class="meta-label">
             {{ post.date | date: "%B %d, %Y" }}

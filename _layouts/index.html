@@ -144,8 +144,7 @@ title: Home
 
 
 <!-- ==================================
-     LATEST WRITEUPS
-     VISIBLE IMMEDIATELY
+     LATEST WRITEUPS & NOTES
 ================================== -->
 
 <section id="latest-writeups">
@@ -183,7 +182,7 @@ title: Home
 
               <span class="meta-label">Platform:</span>
               <span class="meta-value">
-                {{ post.categories | last | upcase | default: "OTHER" }}
+                {{ post.platform | default: "other" | upcase }}
               </span>
 
               <span class="meta-label">Level:</span>
@@ -198,9 +197,11 @@ title: Home
 
             </div>
 
-            <p class="ctf-excerpt">
-              {{ post.excerpt | strip_html | truncatewords: 20 }}
-            </p>
+            {% unless post.platform == "notes" %}
+              <p class="ctf-excerpt">
+                {{ post.excerpt | strip_html | normalize_whitespace | truncatewords: 20 }}
+              </p>
+            {% endunless %}
 
             <span class="meta-label">
               {{ post.date | date: "%B %d, %Y" }}
